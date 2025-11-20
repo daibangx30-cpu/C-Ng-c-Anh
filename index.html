@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Thư gửi cô Ngọc Anh</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Font đẹp, hỗ trợ tiếng Việt -->
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Be Vietnam Pro', sans-serif;
+        background: linear-gradient(135deg, #ffd6e8, #ffeaf5, #fff5fb);
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* Floating Hearts */
+    @keyframes fly {
+        0% { transform: translateY(0) scale(0.7); opacity: 1;}
+        100% { transform: translateY(-900px) scale(1.4); opacity: 0;}
+    }
+    .heart {
+        position: fixed;
+        bottom: -10px;
+        left: calc(5% + 90% * var(--pos));
+        font-size: 22px;
+        color: #ff5f9e;
+        animation: fly linear infinite;
+        opacity: 0.7;
+        animation-duration: calc(4s + 3s * var(--spd));
+        pointer-events: none;
+    }
+
+    /* CARD INPUT */
+    .card {
+        margin: 120px auto;
+        width: 420px;
+        background: white;
+        padding: 35px;
+        border-radius: 20px;
+        text-align: center;
+        box-shadow: 0 8px 25px rgba(255, 110, 160, 0.28);
+        animation: fadeIn 1s ease;
+    }
+    @keyframes fadeIn {
+        from {opacity: 0; transform: translateY(30px);}
+        to {opacity: 1; transform: translateY(0);}
+    }
+    .card h2 {
+        font-size: 26px;
+        color: #ff2f81;
+        font-weight: 700;
+    }
+    .card input {
+        width: 80%;
+        padding: 12px;
+        margin-top: 15px;
+        font-size: 17px;
+        border: 2px solid #ff9bc5;
+        border-radius: 12px;
+        outline: none;
+    }
+    .card button {
+        margin-top: 20px;
+        padding: 12px 22px;
+        font-size: 17px;
+        border: none;
+        color: white;
+        background: linear-gradient(135deg, #ff4fa0, #ff1e85);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 5px 15px rgba(255, 20, 120, 0.3);
+    }
+    .card button:hover {
+        transform: scale(1.05);
+    }
+
+    /* ENVELOPE (cài lại cho đẹp) */
+    .envelope-container {
+        display: none;
+        text-align: center;
+        margin-top: 80px;
+    }
+
+    .envelope {
+        width: 420px;
+        height: 260px;
+        margin: auto;
+        position: relative;
+    }
+
+    .envelope-body {
+        width: 100%;
+        height: 100%;
+        background: #ffc2dd;
+        border-radius: 20px;
+        border: 3px solid #ff8ec4;
+        position: relative;
+        z-index: 1;
+    }
+
+    .envelope-flap {
+        width: 100%;
+        height: 160px;
+        background: #ff94c7;
+        position: absolute;
+        top: 0;
+        left: 0;
+        border-radius: 20px 20px 0 0;
+        transform-origin: top;
+        transition: 1.2s ease;
+        border: 3px solid #ff8ec4;
+        z-index: 2;
+    }
+
+    .open .envelope-flap {
+        transform: rotateX(180deg);
+        z-index: 0;
+    }
+
+    /* LETTER TEXT */
+    .letter {
+        width: 80%;
+        max-width: 650px;
+        margin: 25px auto;
+        padding: 25px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 18px rgba(255, 80, 140, 0.25);
+        font-size: 20px;
+        line-height: 1.7;
+        color: #444;
+        display: none;
+        animation: fadeText 1.2s ease;
+    }
+    @keyframes fadeText {
+        from {opacity: 0; transform: translateY(25px);}
+        to {opacity: 1; transform: translateY(0);}
+    }
+
+    .final-text {
+        text-align: center;
+        margin-top: 25px;
+        font-size: 26px;
+        color: #ff0f78;
+        font-weight: 700;
+        display: none;
+        animation: fadeText 1.5s ease;
+    }
+</style>
+</head>
+
+<body>
+
+<script>
+for (let i = 0; i < 35; i++) {
+    let heart = document.createElement("div");
+    heart.classList.add("heart");
+    heart.style.setProperty("--pos", Math.random());
+    heart.style.setProperty("--spd", Math.random());
+    heart.innerHTML = "❤";
+    document.body.appendChild(heart);
+}
+</script>
+
+<div class="card" id="nameCard">
+    <h2>Chúc mừng ngày Nhà Giáo Việt Nam 20/11</h2>
+    <p>Hãy nhập tên cô để mở thư:</p>
+    <input type="text" id="teacherName" placeholder="VD: Ngọc Anh">
+    <br>
+    <button onclick="validateName()">Mở thư</button>
+    <p id="error" style="color:red; margin-top:10px;"></p>
+</div>
+
+<div class="envelope-container" id="envelopeBox">
+    <div class="envelope" id="envelope">
+        <div class="envelope-body"></div>
+        <div class="envelope-flap"></div>
+    </div>
+</div>
+
+<div class="letter" id="letter1"></div>
+<div class="letter" id="letter2"></div>
+<div class="letter" id="letter3"></div>
+
+<div class="final-text" id="finalMessage">
+    Tập thể lớp 11B1 luôn yêu quý cô ><
+</div>
+
+<script>
+function validateName() {
+    const validNames = ["ngọc anh", "anh", "nguyễn ngọc anh"];
+    let name = document.getElementById("teacherName").value.trim().toLowerCase();
+
+    if (!validNames.includes(name)) {
+        document.getElementById("error").innerText = "Tên không hợp lệ rồi :(";
+        return;
+    }
+
+    document.getElementById("error").innerText = "";
+    document.getElementById("nameCard").style.display = "none";
+    document.getElementById("envelopeBox").style.display = "block";
+
+    setTimeout(() => {
+        document.getElementById("envelope").classList.add("open");
+        setTimeout(showLetters, 1600);
+    }, 300);
+}
+
+function typeEffect(element, text, callback) {
+    let i = 0;
+    element.style.display = "block";
+    element.innerHTML = "";
+    let timer = setInterval(() => {
+        element.innerHTML += text[i];
+        i++;
+        if (i >= text.length) {
+            clearInterval(timer);
+            if (callback) setTimeout(callback, 900);
+        }
+    }, 33);
+}
+
+function showLetters() {
+    const part1 = "Em và tập thể lớp 11B1 xin chúc cô có một ngày 20/11 thật vui vẻ và ý nghĩa, và mong cô có thêm nhiều niềm vui và sức khỏe và có thể đồng hành cùng chúng em.";
+    const part2 = "Em cũng xin thay mặt lớp xin lỗi cô vì nhiều lần gây mất trật tự làm cô thấy không vui, và em cũng xin lỗi vì hôm nhóm em thuyết trình nhóm em và lớp có chuẩn bị một món quà nhỏ cho cô, nhưng do không chú ý đến việc mất trật tự của các bạn mà mọi chuyện có hơi buồn và gây khó chịu nhiều cho cô :( bọn em xin lỗi cô nhiều lắm.";
+    const part3 = "Và hôm nay hình như em thấy cô không vui vì thầy hiệu trưởng có đọc nhầm tên cô thì phải, em cũng mong cô đừng buồn nhiều nhé, vì chúng em luôn nhớ rõ tên cô là cô Nguyễn Ngọc Anh yêu quý của chúng em ạ <3.";
+
+    typeEffect(document.getElementById("letter1"), part1, () => {
+        typeEffect(document.getElementById("letter2"), part2, () => {
+            typeEffect(document.getElementById("letter3"), part3, () => {
+                document.getElementById("finalMessage").style.display = "block";
+            });
+        });
+    });
+}
+</script>
+
+</body>
+</html>
