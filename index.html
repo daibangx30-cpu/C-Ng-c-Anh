@@ -1,245 +1,816 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>Thư gửi cô Ngọc Anh</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- Font đẹp, hỗ trợ tiếng Việt -->
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-<style>
+  <meta charset="UTF-8" />
+  <title>Khảo sát & Kế hoạch tự học Đa trí tuệ (MI)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
     body {
+      margin: 0;
+      padding: 0;
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .container {
+      max-width: 960px;
+      margin: 24px auto;
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+    h1 {
+      font-size: 26px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .description {
+      font-size: 14px;
+      color: #4b5563;
+      margin-bottom: 24px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      margin-left: 6px;
+    }
+    .section-card {
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+    .section-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 16px;
+      color: #111827;
+    }
+    .question {
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .question-text {
+      margin-bottom: 4px;
+    }
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 13px;
+      color: #374151;
+    }
+    .options label {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+    }
+    .legend {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+    @media (min-width: 768px) {
+      .grid-2 {
+        grid-template-columns: 2fr 3fr;
+      }
+    }
+    .input-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .input-row label {
+      font-weight: 500;
+    }
+    .input-row input {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      min-width: 180px;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+    .btn-light {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .results {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px dashed #e5e7eb;
+    }
+    .results h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .results-table th,
+    .results-table td {
+      border: 1px solid #e5e7eb;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .results-table th {
+      background: #f3f4f6;
+      font-weight: 600;
+    }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .tag-strong {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .tag-medium {
+      background: #fef9c3;
+      color: #854d0e;
+    }
+    .tag-weak {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .suggestions {
+      font-size: 13px;
+      background: #f9fafb;
+      border-radius: 10px;
+      padding: 12px 14px;
+      border: 1px solid #e5e7eb;
+      margin-top: 10px;
+    }
+    .suggestions h3 {
+      font-size: 15px;
+      margin-top: 0;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    .note {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 6px;
+    }
+    .alert {
+      padding: 8px 10px;
+      background: #fee2e2;
+      color: #b91c1c;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      display: none;
+    }
+    .mi-plan-title {
+      margin-top: 10px;
+      margin-bottom: 4px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .no-print {
+      /* Ẩn trong chế độ in */
+    }
+
+    /* Chế độ in: chỉ in phần kết quả + thông tin cơ bản */
+    @media print {
+      body {
+        background: #ffffff;
+      }
+      .container {
+        box-shadow: none;
         margin: 0;
-        padding: 0;
-        font-family: 'Be Vietnam Pro', sans-serif;
-        background: linear-gradient(135deg, #ffd6e8, #ffeaf5, #fff5fb);
-        min-height: 100vh;
-        overflow-x: hidden;
+        border-radius: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
     }
-
-    /* Floating Hearts */
-    @keyframes fly {
-        0% { transform: translateY(0) scale(0.7); opacity: 1;}
-        100% { transform: translateY(-900px) scale(1.4); opacity: 0;}
-    }
-    .heart {
-        position: fixed;
-        bottom: -10px;
-        left: calc(5% + 90% * var(--pos));
-        font-size: 22px;
-        color: #ff5f9e;
-        animation: fly linear infinite;
-        opacity: 0.7;
-        animation-duration: calc(4s + 3s * var(--spd));
-        pointer-events: none;
-    }
-
-    /* CARD INPUT */
-    .card {
-        margin: 120px auto;
-        width: 420px;
-        background: white;
-        padding: 35px;
-        border-radius: 20px;
-        text-align: center;
-        box-shadow: 0 8px 25px rgba(255, 110, 160, 0.28);
-        animation: fadeIn 1s ease;
-    }
-    @keyframes fadeIn {
-        from {opacity: 0; transform: translateY(30px);}
-        to {opacity: 1; transform: translateY(0);}
-    }
-    .card h2 {
-        font-size: 26px;
-        color: #ff2f81;
-        font-weight: 700;
-    }
-    .card input {
-        width: 80%;
-        padding: 12px;
-        margin-top: 15px;
-        font-size: 17px;
-        border: 2px solid #ff9bc5;
-        border-radius: 12px;
-        outline: none;
-    }
-    .card button {
-        margin-top: 20px;
-        padding: 12px 22px;
-        font-size: 17px;
-        border: none;
-        color: white;
-        background: linear-gradient(135deg, #ff4fa0, #ff1e85);
-        border-radius: 12px;
-        cursor: pointer;
-        transition: 0.3s;
-        box-shadow: 0 5px 15px rgba(255, 20, 120, 0.3);
-    }
-    .card button:hover {
-        transform: scale(1.05);
-    }
-
-    /* ENVELOPE (cài lại cho đẹp) */
-    .envelope-container {
-        display: none;
-        text-align: center;
-        margin-top: 80px;
-    }
-
-    .envelope {
-        width: 420px;
-        height: 260px;
-        margin: auto;
-        position: relative;
-    }
-
-    .envelope-body {
-        width: 100%;
-        height: 100%;
-        background: #ffc2dd;
-        border-radius: 20px;
-        border: 3px solid #ff8ec4;
-        position: relative;
-        z-index: 1;
-    }
-
-    .envelope-flap {
-        width: 100%;
-        height: 160px;
-        background: #ff94c7;
-        position: absolute;
-        top: 0;
-        left: 0;
-        border-radius: 20px 20px 0 0;
-        transform-origin: top;
-        transition: 1.2s ease;
-        border: 3px solid #ff8ec4;
-        z-index: 2;
-    }
-
-    .open .envelope-flap {
-        transform: rotateX(180deg);
-        z-index: 0;
-    }
-
-    /* LETTER TEXT */
-    .letter {
-        width: 80%;
-        max-width: 650px;
-        margin: 25px auto;
-        padding: 25px;
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 4px 18px rgba(255, 80, 140, 0.25);
-        font-size: 20px;
-        line-height: 1.7;
-        color: #444;
-        display: none;
-        animation: fadeText 1.2s ease;
-    }
-    @keyframes fadeText {
-        from {opacity: 0; transform: translateY(25px);}
-        to {opacity: 1; transform: translateY(0);}
-    }
-
-    .final-text {
-        text-align: center;
-        margin-top: 25px;
-        font-size: 26px;
-        color: #ff0f78;
-        font-weight: 700;
-        display: none;
-        animation: fadeText 1.5s ease;
-    }
-</style>
+  </style>
 </head>
-
 <body>
+  <div class="container">
+    <h1>Khảo sát & Kế hoạch tự học Đa trí tuệ (MI)</h1>
+    <p class="description no-print">
+      Bạn hãy trả lời <strong>40 câu hỏi</strong> theo thang: 
+      <strong>0</strong> = Không đúng, <strong>1</strong> = Ít đúng,
+      <strong>2</strong> = Đúng vừa phải, <strong>3</strong> = Đúng,
+      <strong>4</strong> = Rất đúng. Sau đó web sẽ:
+      <strong>tính điểm – xác định thế mạnh MI – gợi ý kế hoạch tự học 1 tuần</strong>
+      như một người bạn gợi ý cho bạn.
+    </p>
 
-<script>
-for (let i = 0; i < 35; i++) {
-    let heart = document.createElement("div");
-    heart.classList.add("heart");
-    heart.style.setProperty("--pos", Math.random());
-    heart.style.setProperty("--spd", Math.random());
-    heart.innerHTML = "❤";
-    document.body.appendChild(heart);
-}
-</script>
-
-<div class="card" id="nameCard">
-    <h2>Chúc mừng ngày Nhà Giáo Việt Nam 20/11</h2>
-    <p>Hãy nhập tên cô để mở thư:</p>
-    <input type="text" id="teacherName" placeholder="VD: Ngọc Anh">
-    <br>
-    <button onclick="validateName()">Mở thư</button>
-    <p id="error" style="color:red; margin-top:10px;"></p>
-</div>
-
-<div class="envelope-container" id="envelopeBox">
-    <div class="envelope" id="envelope">
-        <div class="envelope-body"></div>
-        <div class="envelope-flap"></div>
+    <div class="grid grid-2 no-print">
+      <div>
+        <div class="section-card">
+          <div class="section-title">Thông tin học sinh</div>
+          <div class="input-row">
+            <label for="studentName">Họ và tên:</label>
+            <input id="studentName" type="text" placeholder="VD: Nguyễn Văn A" />
+          </div>
+          <div class="input-row">
+            <label for="studentClass">Lớp:</label>
+            <input id="studentClass" type="text" placeholder="VD: 10A1" />
+          </div>
+          <div class="input-row">
+            <label for="surveyDate">Ngày khảo sát:</label>
+            <input id="surveyDate" type="date" />
+          </div>
+          <p class="note">* Thông tin này chỉ dùng để hiển thị trong phiếu kết quả.</p>
+        </div>
+      </div>
+      <div>
+        <div class="section-card">
+          <div class="section-title">Thang đánh giá điểm MI</div>
+          <ul style="margin: 6px 0 0; font-size: 13px;">
+            <li><strong>16 – 20 điểm</strong>: <span class="tag tag-strong">Mạnh</span></li>
+            <li><strong>11 – 15 điểm</strong>: <span class="tag tag-medium">Trung bình</span></li>
+            <li><strong>0 – 10 điểm</strong>: <span class="tag tag-weak">Cần phát triển</span></li>
+          </ul>
+          <p class="note">
+            Bạn có thể chọn <strong>2–3 trí tuệ mạnh nhất</strong> để ưu tiên hoạt động mỗi ngày,
+            đồng thời chọn thêm một vài trí tuệ “Cần phát triển” để luyện dần.
+          </p>
+        </div>
+      </div>
     </div>
-</div>
 
-<div class="letter" id="letter1"></div>
-<div class="letter" id="letter2"></div>
-<div class="letter" id="letter3"></div>
+    <form id="miForm" class="no-print">
+      <div id="alert" class="alert"></div>
+      <div id="survey"></div>
 
-<div class="final-text" id="finalMessage">
-    Tập thể lớp 11B1 luôn yêu quý cô ><
-</div>
+      <div style="display:flex; gap:10px; margin-top:18px; justify-content:flex-end;">
+        <button type="button" class="btn-light" id="resetBtn">Làm lại</button>
+        <button type="submit" class="btn-primary">
+          Tính điểm &amp; Gợi ý kế hoạch
+        </button>
+      </div>
+    </form>
 
-<script>
-function validateName() {
-    const validNames = ["ngọc anh", "anh", "nguyễn ngọc anh"];
-    let name = document.getElementById("teacherName").value.trim().toLowerCase();
+    <div id="results" class="results" style="display:none;">
+      <div class="toolbar no-print">
+        <button type="button" class="btn-light" id="printBtn">In / Lưu PDF</button>
+        <button type="button" class="btn-primary" id="exportBtn">Tải bảng điểm (Excel)</button>
+      </div>
 
-    if (!validNames.includes(name)) {
-        document.getElementById("error").innerText = "Tên không hợp lệ rồi :(";
-        return;
+      <h2>Kết quả tổng hợp</h2>
+      <p id="studentInfo" style="font-size:14px; color:#4b5563;"></p>
+
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Loại trí tuệ</th>
+            <th>Điểm (0–20)</th>
+            <th>Đánh giá</th>
+            <th>Gợi ý hoạt động tự học</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+
+      <div class="suggestions" id="topSuggestions"></div>
+      <div class="suggestions" id="planSuggestions"></div>
+    </div>
+  </div>
+
+  <script>
+    // 1. Cấu trúc câu hỏi khảo sát (40 câu, 8 loại trí tuệ)
+    const miSurvey = [
+      {
+        id: "linguistic",
+        label: "Ngôn ngữ – Linguistic",
+        questions: [
+          "Tôi thích viết cảm nhận, bình luận hoặc bài luận về tác phẩm văn học.",
+          "Khi đọc thơ, tôi thích ghi chú các hình ảnh, từ ngữ hay.",
+          "Tôi dễ nhớ và lặp lại các câu văn hoặc đoạn văn một cách chính xác.",
+          "Tôi thích thuyết trình hoặc kể lại nội dung truyện bằng lời của mình.",
+          "Tôi thường diễn đạt ý tưởng rõ ràng khi tham gia thảo luận nhóm."
+        ]
+      },
+      {
+        id: "logical",
+        label: "Logic – Toán học (Logical)",
+        questions: [
+          "Tôi thích phân tích cốt truyện để tìm nguyên nhân – kết quả của hành động nhân vật.",
+          "Tôi thường lập bảng so sánh các nhân vật, chi tiết, sự kiện trong tác phẩm.",
+          "Tôi thích tìm mối liên hệ, quy luật giữa các sự kiện trong văn bản.",
+          "Khi giải quyết một vấn đề văn học, tôi thích lập sơ đồ hoặc dàn ý logic.",
+          "Tôi dễ phát hiện mâu thuẫn hoặc vấn đề trong văn bản."
+        ]
+      },
+      {
+        id: "spatial",
+        label: "Không gian – Spatial",
+        questions: [
+          "Tôi thích vẽ minh họa cảnh vật, nhân vật hoặc bối cảnh văn học.",
+          "Tôi hình dung rõ ràng không gian, cảnh vật trong văn bản khi đọc.",
+          "Tôi thích tạo sơ đồ, bản đồ tư duy để tóm tắt nội dung.",
+          "Tôi dễ tưởng tượng hình ảnh của nhân vật hoặc tình huống trong truyện.",
+          "Tôi quan tâm đến màu sắc, bố cục khi trình bày sản phẩm học tập."
+        ]
+      },
+      {
+        id: "bodily",
+        label: "Vận động – Bodily/Kinesthetic",
+        questions: [
+          "Tôi thích đóng vai hoặc diễn kịch các cảnh trong truyện.",
+          "Tôi học tốt hơn khi tham gia hoạt động thực hành, nhập vai.",
+          "Tôi thường sử dụng cơ thể để mô tả ý tưởng hoặc cảm xúc.",
+          "Tôi cảm thấy ghi nhớ nội dung tốt hơn khi làm việc nhóm kết hợp hành động.",
+          "Tôi thích dùng đồ vật minh họa khi thuyết trình về tác phẩm."
+        ]
+      },
+      {
+        id: "musical",
+        label: "Âm nhạc – Musical",
+        questions: [
+          "Tôi thích nghe nhạc khi đọc thơ hoặc văn bản có nhịp điệu.",
+          "Tôi dễ cảm nhận vần điệu, nhịp điệu trong văn bản.",
+          "Tôi thích chuyển một đoạn thơ thành giai điệu hoặc rap ngắn.",
+          "Tôi sử dụng âm thanh để hỗ trợ việc học hoặc trình bày văn bản.",
+          "Tôi nhận ra sự tương đồng giữa cảm xúc văn học và nhạc cụ, giai điệu."
+        ]
+      },
+      {
+        id: "interpersonal",
+        label: "Tương tác – Interpersonal",
+        questions: [
+          "Tôi dễ hòa nhập và trao đổi ý tưởng với bạn cùng lớp về văn bản.",
+          "Tôi thích thảo luận nhóm để phân tích nội dung tác phẩm.",
+          "Tôi cảm thấy hứng thú khi giải thích nội dung cho người khác.",
+          "Tôi thích hoạt động hợp tác để hoàn thành sản phẩm học tập.",
+          "Tôi có khả năng lắng nghe và phản hồi hiệu quả trong các hoạt động nhóm."
+        ]
+      },
+      {
+        id: "intrapersonal",
+        label: "Nội tâm – Intrapersonal",
+        questions: [
+          "Tôi thường suy ngẫm về cảm xúc và suy nghĩ của bản thân khi đọc văn.",
+          "Tôi dễ tự đánh giá điểm mạnh – yếu của mình trong học tập Ngữ văn.",
+          "Tôi biết mình học tốt hơn theo cách nào (viết, nghe, xem, làm…).",
+          "Tôi thường đặt mục tiêu cá nhân cho việc học mỗi tuần/tháng.",
+          "Tôi thích viết nhật ký cảm xúc liên quan đến tác phẩm văn học."
+        ]
+      },
+      {
+        id: "naturalist",
+        label: "Thiên nhiên – Naturalist",
+        questions: [
+          "Tôi thích liên hệ các chi tiết trong văn bản với thiên nhiên và môi trường thực tế.",
+          "Tôi quan sát môi trường xung quanh để hiểu nội dung văn bản tốt hơn.",
+          "Tôi dễ nhớ và cảm nhận các hình ảnh thiên nhiên trong văn học.",
+          "Tôi thích sưu tầm hình ảnh/biểu tượng thiên nhiên liên quan đến tác phẩm.",
+          "Tôi nhận ra mối quan hệ giữa con người và thiên nhiên qua các tác phẩm văn học."
+        ]
+      }
+    ];
+
+    // 2. Gợi ý hoạt động theo từng trí tuệ (dạng ngắn)
+    const miSuggestions = {
+      linguistic: [
+        "Viết cảm nhận, bình luận, tóm tắt tác phẩm bạn đang học.",
+        "Viết nhật ký học tập hoặc nhật ký cảm xúc sau mỗi bài đọc.",
+        "Thuyết trình trước gương, ghi âm giọng đọc và tự nghe lại."
+      ],
+      logical: [
+        "Lập bảng so sánh nhân vật, chi tiết, sự kiện giữa các tác phẩm.",
+        "Tạo sơ đồ nguyên nhân – kết quả, sơ đồ mạch truyện.",
+        "Lập dàn ý rõ ràng trước khi viết bài phân tích."
+      ],
+      spatial: [
+        "Vẽ minh họa cảnh, nhân vật, bối cảnh trong truyện, thơ.",
+        "Tạo sơ đồ tư duy, infographic tóm tắt nội dung bài.",
+        "Mô phỏng bố cục truyện/đoạn văn bằng hình ảnh."
+      ],
+      bodily: [
+        "Đóng vai, diễn kịch một cảnh trong tác phẩm.",
+        "Dùng cử chỉ, đạo cụ minh họa khi kể lại nội dung.",
+        "Quay video ngắn tái hiện lại một đoạn truyện bạn thích."
+      ],
+      musical: [
+        "Chuyển một đoạn thơ thành giai điệu, bài hát hoặc rap.",
+        "Đọc diễn cảm theo nhịp điệu, kết hợp nhạc nền nhẹ.",
+        "Tạo podcast ngắn chia sẻ cảm xúc về tác phẩm."
+      ],
+      interpersonal: [
+        "Thảo luận nhóm trực tiếp hoặc online về nội dung/bài học.",
+        "Đóng vai phỏng vấn nhân vật để hiểu tâm lý nhân vật hơn.",
+        "Học đôi bạn cùng tiến, giải thích bài cho bạn khác."
+      ],
+      intrapersonal: [
+        "Viết nhật ký cảm xúc và nhật ký học tập sau giờ Ngữ văn.",
+        "Đặt mục tiêu tự học Ngữ văn cho tuần/tháng.",
+        "Tự đánh giá điểm mạnh – yếu sau mỗi bài kiểm tra, bài viết."
+      ],
+      naturalist: [
+        "Quan sát thiên nhiên xung quanh, liên hệ với hình ảnh trong tác phẩm.",
+        "Sưu tầm ảnh/clip về cảnh vật giống trong văn bản.",
+        "Viết đoạn văn miêu tả thiên nhiên gắn với trải nghiệm thực tế."
+      ]
+    };
+
+    // 3. KẾ HOẠCH TỰ HỌC 1 TUẦN THEO TỪNG THẾ MẠNH (giọng 'bạn gợi ý cho bạn')
+    const miWeeklyPlan = {
+      linguistic: [
+        "Thứ 2: Đọc lại một đoạn truyện hoặc bài thơ, gạch chân 3 câu/ hình ảnh bạn thích nhất và ghi lại lý do trong 5–7 câu.",
+        "Thứ 3: Viết một đoạn văn 150–200 chữ cảm nhận về nhân vật, chi tiết hoặc câu nói mà bạn ấn tượng.",
+        "Thứ 4: Tóm tắt nội dung một đoạn truyện/ văn bản bằng 5–7 câu, cố gắng dùng từ ngữ của chính bạn.",
+        "Thứ 5: Đọc diễn cảm một đoạn thơ hoặc văn xuôi, ghi âm lại rồi nghe và tự nhận xét xem chỗ nào cần nhấn giọng hơn.",
+        "Thứ 6: Viết nhật ký học tập Ngữ văn trong 10–15 phút (hôm nay bạn học gì, hiểu được gì, còn vướng gì).",
+        "Cuối tuần: Chọn một bài viết/ đoạn đọc bạn thích nhất trong tuần để chỉnh sửa lại thật tốt rồi chia sẻ với bạn hoặc thầy/cô."
+      ],
+      logical: [
+        "Thứ 2: Lập bảng so sánh 2 nhân vật trong cùng một tác phẩm (giống nhau – khác nhau – lí do).",
+        "Thứ 3: Vẽ sơ đồ nguyên nhân – kết quả cho một chuỗi sự kiện trong truyện (vì sao – dẫn tới điều gì).",
+        "Thứ 4: Tạo sơ đồ mạch truyện (mở đầu – phát triển – cao trào – kết thúc) cho văn bản đang học.",
+        "Thứ 5: Dùng gạch đầu dòng để lập dàn ý chi tiết cho một đề văn nghị luận hoặc cảm nhận.",
+        "Thứ 6: Tự kiểm tra: đọc một đoạn, thử nêu 3 câu hỏi 'vì sao' và tự trả lời bằng lí lẽ, dẫn chứng.",
+        "Cuối tuần: Nhìn lại các sơ đồ, bảng biểu đã làm, ghi ra 3 điều bạn rút ra về cách phân tích tác phẩm."
+      ],
+      spatial: [
+        "Thứ 2: Vẽ nhanh bối cảnh chính (không gian, thời gian) của một truyện/ bài thơ bạn đang học.",
+        "Thứ 3: Tạo sơ đồ tư duy tóm tắt một văn bản (ý chính ở giữa, các nhánh là sự kiện/ nhân vật/ hình ảnh).",
+        "Thứ 4: Thiết kế một poster nho nhỏ (trên giấy hoặc Canva) giới thiệu tác phẩm: tên, tác giả, hình ảnh tiêu biểu.",
+        "Thứ 5: Vẽ chân dung hoặc kí họa một nhân vật, kèm theo 3 tính từ mô tả xung quanh.",
+        "Thứ 6: Biến nội dung bài học thành 'bản đồ' với các ô, mũi tên, kí hiệu riêng của bạn.",
+        "Cuối tuần: Chụp lại các sản phẩm (sơ đồ, tranh vẽ…) để so sánh dần theo thời gian xem cách bạn trình bày có tiến bộ không."
+      ],
+      bodily: [
+        "Thứ 2: Chọn một đoạn đối thoại trong truyện, đứng lên đọc và diễn bằng cử chỉ, nét mặt như đang đóng kịch.",
+        "Thứ 3: Cùng một người bạn diễn lại một cảnh ngắn, sau đó ghi chú lại xem bạn hiểu nhân vật hơn chỗ nào.",
+        "Thứ 4: Dùng đồ vật xung quanh (bút, sách, ghế…) để minh họa cho cốt truyện khi bạn kể lại cho người khác.",
+        "Thứ 5: Vừa đi lại nhẹ nhàng vừa học thuộc một đoạn thơ, xem bạn nhớ nhanh hơn không.",
+        "Thứ 6: Quay một video ngắn (1–2 phút) bạn đóng vai nhân vật, nói suy nghĩ của nhân vật ở một thời điểm quan trọng.",
+        "Cuối tuần: Viết vài dòng cảm nhận: học Ngữ văn bằng cách 'diễn' như vậy giúp bạn nhớ và hiểu bài khác gì với chỉ đọc – chép."
+      ],
+      musical: [
+        "Thứ 2: Nghe một bản nhạc nhẹ khi đọc thơ, thử gạch chân chỗ nào bạn thấy nhịp thơ hợp với nhịp nhạc.",
+        "Thứ 3: Chọn 2–4 câu thơ và thử đọc lên theo nhịp giống rap hoặc hát, chú ý vần và nhịp.",
+        "Thứ 4: Tạo một 'playlist cảm xúc' (danh sách bài nhạc) cho một tác phẩm: với mỗi bài nhạc, ghi chú tại sao hợp với tác phẩm.",
+        "Thứ 5: Ghi âm bạn đọc diễn cảm một đoạn văn, thêm nhạc nền nhỏ phía sau (chỉ để bạn nghe, không cần hoàn hảo).",
+        "Thứ 6: Viết vài dòng mô tả: nếu tác phẩm này là một bài nhạc, nó sẽ nhanh hay chậm, sáng hay buồn, vì sao.",
+        "Cuối tuần: Chọn một đoạn thơ/ văn bạn thấy 'rất có nhạc', thử viết lại theo một kiểu nhịp điệu khác (ngắt dòng, ngắt câu…)."
+      ],
+      interpersonal: [
+        "Thứ 2: Hỏi một bạn cùng lớp xem bạn ấy hiểu thế nào về một nhân vật, so sánh với suy nghĩ của bạn.",
+        "Thứ 3: Tham gia một cuộc trò chuyện nhóm nhỏ (offline/ online) về bài học, ghi lại 1–2 ý hay bạn học được từ bạn khác.",
+        "Thứ 4: Giải thích lại nội dung một đoạn văn/ bài thơ cho em/ bạn, xem bạn có diễn đạt được rõ ràng không.",
+        "Thứ 5: Cùng một người bạn phân vai đọc truyện: mỗi người một nhân vật, rồi trao đổi xem ai hiểu nhân vật của mình ra sao.",
+        "Thứ 6: Viết lại cuộc trò chuyện/ thảo luận mà bạn nhớ, rút ra điều bạn thích nhất khi học theo kiểu nhóm.",
+        "Cuối tuần: Rủ 1–2 bạn làm chung một sản phẩm Ngữ văn (video, poster, sơ đồ…), phân chia vai trò rõ ràng."
+      ],
+      intrapersonal: [
+        "Thứ 2: Viết 5–7 dòng về cảm xúc của bạn khi học Ngữ văn tuần này (bạn thích/ không thích điều gì, vì sao).",
+        "Thứ 3: Ghi ra 3 điểm mạnh và 2 điểm yếu của bạn trong môn Ngữ văn hiện tại.",
+        "Thứ 4: Đặt một mục tiêu nhỏ cho tuần (ví dụ: viết xong 1 bài văn hoàn chỉnh, học thuộc 1 bài thơ…).",
+        "Thứ 5: Sau khi làm bài/ học xong, tự chấm điểm nỗ lực của mình từ 1–5 và giải thích vì sao cho mức đó.",
+        "Thứ 6: Viết nhật ký ngắn: hôm nay bạn đã làm gì để tiến gần hơn mục tiêu nhỏ của mình.",
+        "Cuối tuần: Nhìn lại cả tuần, đánh dấu ✓ những mục tiêu đạt được, ghi thêm 1 điều bạn muốn làm tốt hơn ở tuần sau."
+      ],
+      naturalist: [
+        "Thứ 2: Khi đi trên đường hoặc ở trường, chú ý một cảnh thiên nhiên (cây, trời, mây…) và ghi lại 3 chi tiết bạn thấy đẹp.",
+        "Thứ 3: Tìm trong tác phẩm đang học một hình ảnh thiên nhiên, thử liên hệ với cảnh thực tế bạn từng thấy.",
+        "Thứ 4: Chụp hoặc vẽ lại một cảnh thiên nhiên gần nhà/trường rồi viết 5–7 câu miêu tả theo kiểu văn học.",
+        "Thứ 5: Sưu tầm một bức ảnh/ đoạn clip thiên nhiên phù hợp với tâm trạng của một nhân vật trong truyện và giải thích vì sao.",
+        "Thứ 6: Tạo một 'bản đồ hình tượng thiên nhiên' nhỏ: mỗi hình ảnh (trăng, mưa, sông, núi…) gắn với cảm xúc/ ý nghĩa gì.",
+        "Cuối tuần: Viết một đoạn văn ngắn về mối quan hệ giữa con người và thiên nhiên mà bạn rút ra từ một tác phẩm đã học."
+      ]
+    };
+
+    // 4. Sinh HTML cho phần khảo sát
+    const surveyContainer = document.getElementById("survey");
+    miSurvey.forEach(section => {
+      const sectionEl = document.createElement("div");
+      sectionEl.className = "section-card";
+
+      const title = document.createElement("div");
+      title.className = "section-title";
+      title.textContent = section.label;
+
+      const badge = document.createElement("span");
+      badge.className = "badge";
+      badge.textContent = "5 câu hỏi";
+      title.appendChild(badge);
+
+      sectionEl.appendChild(title);
+
+      const legend = document.createElement("div");
+      legend.className = "legend";
+      legend.textContent = "0 = Không đúng, 1 = Ít đúng, 2 = Đúng vừa phải, 3 = Đúng, 4 = Rất đúng";
+      sectionEl.appendChild(legend);
+
+      section.questions.forEach((q, idx) => {
+        const qName = section.id + "_" + (idx + 1);
+
+        const qWrapper = document.createElement("div");
+        qWrapper.className = "question";
+        qWrapper.dataset.miId = section.id;
+        qWrapper.dataset.qName = qName;
+
+        const qText = document.createElement("div");
+        qText.className = "question-text";
+        qText.textContent = (idx + 1) + ". " + q;
+        qWrapper.appendChild(qText);
+
+        const options = document.createElement("div");
+        options.className = "options";
+
+        for (let value = 0; value <= 4; value++) {
+          const label = document.createElement("label");
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = qName;
+          input.value = value;
+          label.appendChild(input);
+          label.appendChild(document.createTextNode(String(value)));
+          options.appendChild(label);
+        }
+
+        qWrapper.appendChild(options);
+        sectionEl.appendChild(qWrapper);
+      });
+
+      surveyContainer.appendChild(sectionEl);
+    });
+
+    // 5. Xử lý tính điểm, hiển thị kết quả
+    const form = document.getElementById("miForm");
+    const alertBox = document.getElementById("alert");
+    const resultsEl = document.getElementById("results");
+    const resultsBody = document.getElementById("resultsBody");
+    const studentInfoEl = document.getElementById("studentInfo");
+    const topSuggestionsEl = document.getElementById("topSuggestions");
+    const planSuggestionsEl = document.getElementById("planSuggestions");
+    const printBtn = document.getElementById("printBtn");
+    const exportBtn = document.getElementById("exportBtn");
+
+    let lastExportData = null; // lưu dữ liệu lần khảo sát gần nhất để xuất Excel
+
+    function classifyScore(score) {
+      if (score >= 16) return { label: "Mạnh", tagClass: "tag-strong" };
+      if (score >= 11) return { label: "Trung bình", tagClass: "tag-medium" };
+      return { label: "Cần phát triển", tagClass: "tag-weak" };
     }
 
-    document.getElementById("error").innerText = "";
-    document.getElementById("nameCard").style.display = "none";
-    document.getElementById("envelopeBox").style.display = "block";
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
 
-    setTimeout(() => {
-        document.getElementById("envelope").classList.add("open");
-        setTimeout(showLetters, 1600);
-    }, 300);
-}
+      alertBox.style.display = "none";
+      alertBox.textContent = "";
 
-function typeEffect(element, text, callback) {
-    let i = 0;
-    element.style.display = "block";
-    element.innerHTML = "";
-    let timer = setInterval(() => {
-        element.innerHTML += text[i];
-        i++;
-        if (i >= text.length) {
-            clearInterval(timer);
-            if (callback) setTimeout(callback, 900);
-        }
-    }, 33);
-}
+      // Kiểm tra đã trả lời đủ 40 câu chưa
+      const questionGroups = document.querySelectorAll(".question");
+      let missing = 0;
+      questionGroups.forEach(q => {
+        const qName = q.dataset.qName;
+        const checked = document.querySelector(`input[name="${qName}"]:checked`);
+        if (!checked) missing++;
+      });
 
-function showLetters() {
-    const part1 = "Em và tập thể lớp 11B1 xin chúc cô có một ngày 20/11 thật vui vẻ và ý nghĩa, và mong cô có thêm nhiều niềm vui và sức khỏe và có thể đồng hành cùng chúng em.";
-    const part2 = "Em cũng xin thay mặt lớp xin lỗi cô vì nhiều lần gây mất trật tự làm cô thấy không vui, và em cũng xin lỗi vì hôm nhóm em thuyết trình nhóm em và lớp có chuẩn bị một món quà nhỏ cho cô, nhưng do không chú ý đến việc mất trật tự của các bạn mà mọi chuyện có hơi buồn và gây khó chịu nhiều cho cô :( bọn em xin lỗi cô nhiều lắm.";
-    const part3 = "Và hôm nay hình như em thấy cô không vui vì thầy hiệu trưởng có đọc nhầm tên cô thì phải, em cũng mong cô đừng buồn nhiều nhé, vì chúng em luôn nhớ rõ tên cô là cô Nguyễn Ngọc Anh yêu quý của chúng em ạ <3.";
+      if (missing > 0) {
+        alertBox.style.display = "block";
+        alertBox.textContent = `Vui lòng trả lời đầy đủ tất cả các câu hỏi (còn ${missing} câu chưa trả lời).`;
+        return;
+      }
 
-    typeEffect(document.getElementById("letter1"), part1, () => {
-        typeEffect(document.getElementById("letter2"), part2, () => {
-            typeEffect(document.getElementById("letter3"), part3, () => {
-                document.getElementById("finalMessage").style.display = "block";
-            });
+      // Tính tổng điểm cho từng loại trí tuệ
+      const scores = {};
+      miSurvey.forEach(section => {
+        scores[section.id] = 0;
+      });
+
+      questionGroups.forEach(q => {
+        const miId = q.dataset.miId;
+        const qName = q.dataset.qName;
+        const checked = document.querySelector(`input[name="${qName}"]:checked`);
+        const value = parseInt(checked.value, 10) || 0;
+        scores[miId] += value;
+      });
+
+      // Render bảng kết quả
+      resultsBody.innerHTML = "";
+      miSurvey.forEach(section => {
+        const score = scores[section.id];
+        const cls = classifyScore(score);
+
+        const tr = document.createElement("tr");
+
+        const tdName = document.createElement("td");
+        tdName.textContent = section.label;
+
+        const tdScore = document.createElement("td");
+        tdScore.textContent = score;
+
+        const tdClass = document.createElement("td");
+        const span = document.createElement("span");
+        span.className = "tag " + cls.tagClass;
+        span.textContent = cls.label;
+        tdClass.appendChild(span);
+
+        const tdSug = document.createElement("td");
+        const sugList = miSuggestions[section.id] || [];
+        const ul = document.createElement("ul");
+        sugList.forEach(s => {
+          const li = document.createElement("li");
+          li.textContent = s;
+          ul.appendChild(li);
         });
-    });
-}
-</script>
+        tdSug.appendChild(ul);
 
+        tr.appendChild(tdName);
+        tr.appendChild(tdScore);
+        tr.appendChild(tdClass);
+        tr.appendChild(tdSug);
+
+        resultsBody.appendChild(tr);
+      });
+
+      // Thông tin học sinh
+      const name = document.getElementById("studentName").value.trim();
+      const clazz = document.getElementById("studentClass").value.trim();
+      const date = document.getElementById("surveyDate").value;
+
+      const parts = [];
+      let dateText = "";
+      if (name) parts.push("Họ và tên: " + name);
+      if (clazz) parts.push("Lớp: " + clazz);
+      if (date) {
+        dateText = new Date(date).toLocaleDateString("vi-VN");
+        parts.push("Ngày khảo sát: " + dateText);
+      }
+
+      studentInfoEl.textContent = parts.length ? parts.join(" | ") : "Chưa nhập thông tin học sinh.";
+
+      // 6. Gợi ý tổng quát cho 3 loại trí tuệ cao nhất
+      const scoreEntries = Object.entries(scores);
+      scoreEntries.sort((a, b) => b[1] - a[1]); // giảm dần
+      const top = scoreEntries.slice(0, 3); // lấy 3 loại cao nhất
+
+      let html = "<h3>Gợi ý định hướng tự học theo thế mạnh MI (dành cho bạn)</h3>";
+      html += "<p>Hãy ưu tiên chọn hoạt động phù hợp với <strong>2–3 loại trí tuệ có điểm cao nhất</strong> dưới đây để lập kế hoạch mỗi tuần. Bạn có thể kết hợp nhiều cách học cùng lúc.</p>";
+      html += "<ul>";
+
+      top.forEach(([id, score]) => {
+        const section = miSurvey.find(s => s.id === id);
+        const cls = classifyScore(score);
+        html += `<li><strong>${section.label}</strong> – ${score} điểm (${cls.label})`;
+        const sugList = miSuggestions[id] || [];
+        if (sugList.length) {
+          html += "<ul>";
+          sugList.forEach(s => {
+            html += `<li>${s}</li>`;
+          });
+          html += "</ul>";
+        }
+        html += "</li>";
+      });
+
+      html += "</ul>";
+      html += '<p class="note">Gợi ý: Bạn có thể chia sẻ kết quả này với thầy/cô và bạn bè để cùng hỗ trợ nhau học theo thế mạnh riêng.</p>';
+
+      topSuggestionsEl.innerHTML = html;
+
+      // 7. KẾ HOẠCH 1 TUẦN CỤ THỂ CHO TỪNG THẾ MẠNH
+      let planHtml = "<h3>Kế hoạch tự học 1 tuần theo thế mạnh (giọng một người bạn gợi ý cho bạn)</h3>";
+      planHtml += "<p>Mình gợi ý cho bạn một lịch học mẫu 1 tuần. Bạn không cần làm đúng y chang, chỉ cần xem và chỉnh lại cho hợp thời gian của mình.</p>";
+
+      top.forEach(([id, score]) => {
+        const section = miSurvey.find(s => s.id === id);
+        const plan = miWeeklyPlan[id];
+        if (!plan) return;
+
+        planHtml += `<div class="mi-plan">`;
+        planHtml += `<div class="mi-plan-title">${section.label} – ${score} điểm</div>`;
+        planHtml += "<ul>";
+        plan.forEach(item => {
+          planHtml += `<li>${item}</li>`;
+        });
+        planHtml += "</ul>";
+        planHtml += "</div>";
+      });
+
+      planHtml += '<p class="note">Bạn có thể in trang này hoặc chụp màn hình phần kế hoạch để dán vào sổ tay/ góc học tập và đánh dấu ✓ những việc đã làm mỗi ngày.</p>';
+
+      planSuggestionsEl.innerHTML = planHtml;
+
+      // 8. Lưu dữ liệu để xuất Excel
+      const classifications = {};
+      miSurvey.forEach(section => {
+        classifications[section.id] = classifyScore(scores[section.id]).label;
+      });
+
+      lastExportData = {
+        name,
+        clazz,
+        date: dateText,
+        scores,
+        classifications
+      };
+
+      resultsEl.style.display = "block";
+      window.scrollTo({ top: resultsEl.offsetTop - 20, behavior: "smooth" });
+    });
+
+    // 9. Nút làm lại
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      form.reset();
+      resultsEl.style.display = "none";
+      alertBox.style.display = "none";
+      alertBox.textContent = "";
+      lastExportData = null;
+    });
+
+    // 10. Nút In / Lưu PDF
+    printBtn.addEventListener("click", () => {
+      if (resultsEl.style.display === "none" || !resultsEl.style.display) {
+        alert("Bạn cần hoàn thành khảo sát và xem kết quả trước khi in.");
+        return;
+      }
+      window.print();
+    });
+
+    // 11. Nút Tải bảng điểm (Excel – file CSV)
+    exportBtn.addEventListener("click", () => {
+      if (!lastExportData) {
+        alert("Bạn cần hoàn thành khảo sát trước khi tải bảng điểm.");
+        return;
+      }
+
+      const lines = [];
+      lines.push("Ho va ten,Lop,Ngay khao sat");
+      lines.push(`"${lastExportData.name || ""}","${lastExportData.clazz || ""}","${lastExportData.date || ""}"`);
+      lines.push("");
+      lines.push("Loai tri tue,Diem,Danh gia");
+
+      miSurvey.forEach(section => {
+        const id = section.id;
+        const score = lastExportData.scores[id];
+        const clsLabel = lastExportData.classifications[id];
+        lines.push(`"${section.label}",${score},"${clsLabel}"`);
+      });
+
+      const csvContent = "\uFEFF" + lines.join("\r\n"); // thêm BOM để Excel nhận tiếng Việt
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const safeName = (lastExportData.name || "hoc_sinh").replace(/[\\/:*?"<>|]/g, "_");
+      a.href = url;
+      a.download = `ket_qua_MI_${safeName}_${timestamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  </script>
 </body>
 </html>
