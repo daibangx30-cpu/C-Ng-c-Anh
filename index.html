@@ -130,11 +130,12 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 50;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
 
         .modal-content {
@@ -142,8 +143,9 @@
             border: 2px solid rgba(239, 68, 68, 0.5);
             border-radius: 20px;
             padding: 30px;
-            max-width: 600px;
-            max-height: 80vh;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
             overflow-y: auto;
             animation: slideIn 0.3s ease-out;
         }
@@ -212,6 +214,35 @@
         
         .role-wolf { background: rgba(239, 68, 68, 0.3); color: #fca5a5; }
         .role-villager { background: rgba(34, 197, 94, 0.3); color: #86efac; }
+        
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 2px solid rgba(239, 68, 68, 0.5);
+            border-radius: 20px;
+            padding: 40px;
+            z-index: 1000;
+            text-align: center;
+            max-width: 90%;
+            width: 500px;
+        }
+        
+        .fullscreen-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
     </style>
 </head>
 <body class="h-full font-body wolf-bg text-white overflow-auto">
@@ -223,10 +254,11 @@
                     <div class="text-6xl">🐺</div>
                 </div>
                 <h1 class="font-display text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">MA SÓI</h1>
-                <p class="text-red-200/70 mb-8">Mộng Đắc Thái Liên - 20 phút</p>
+                <p class="text-red-200/70 mb-6">Mộng Đắc Thái Liên - 13 phút</p>
                 <div class="space-y-4 mb-8">
                     <label for="playerNameInput" class="block text-left text-red-200/80 text-sm mb-1">NHẬP TÊN CỦA BẠN</label>
-                    <input type="text" id="playerNameInput" placeholder="Tên của bạn..." class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none">
+                    <input type="text" id="playerNameInput" placeholder="Nhập tên của bạn..." class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none">
+                    <div id="nameError" class="text-red-400 text-sm hidden">Tên này đã có người sử dụng!</div>
                     <button id="playerLoginBtn" class="btn-primary w-full py-3 rounded-xl font-semibold text-white">
                         🎮 VÀO GAME
                     </button>
@@ -235,7 +267,7 @@
                     <p class="text-red-200/50 text-sm mb-4">Dành cho Quản trò</p>
                     <div class="space-y-3">
                         <input type="text" id="adminNameInput" placeholder="Tên Admin" value="Admin" class="input-field w-full px-4 py-2 rounded-lg text-white placeholder-white/40 outline-none text-sm">
-                        <input type="password" id="adminPasswordInput" placeholder="Mật khẩu" class="input-field w-full px-4 py-2 rounded-lg text-white placeholder-white/40 outline-none text-sm">
+                        <input type="password" id="adminPasswordInput" placeholder="Mật khẩu: admin123" class="input-field w-full px-4 py-2 rounded-lg text-white placeholder-white/40 outline-none text-sm">
                         <button id="adminLoginBtn" class="w-full py-2 rounded-lg font-medium text-red-300 border border-red-400/30 hover:bg-red-400/10 transition-all text-sm">
                             🔐 ĐĂNG NHẬP ADMIN
                         </button>
@@ -263,7 +295,7 @@
                     <div class="flex items-center gap-4 text-sm">
                         <div class="flex items-center gap-1">
                             <span>⏰</span>
-                            <span id="playerTimer" class="font-mono">20:00</span>
+                            <span id="playerTimer" class="font-mono">13:00</span>
                         </div>
                         <div class="flex items-center gap-1">
                             <span>👥</span>
@@ -302,7 +334,7 @@
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                     <!-- Zone 1 -->
-                    <div id="zone1" class="glass rounded-lg p-4 border border-purple-400/30 cursor-pointer hover:border-purple-400/50 transition-all">
+                    <div id="zone1" class="zone-card glass rounded-lg p-4 border border-purple-400/30 cursor-pointer hover:border-purple-400/50 transition-all">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-semibold text-purple-300">🌸 Khu 1</span>
                             <span class="text-xs text-purple-200/70">
@@ -318,7 +350,7 @@
                     </div>
 
                     <!-- Zone 2 -->
-                    <div id="zone2" class="glass rounded-lg p-4 border border-blue-400/30 cursor-pointer hover:border-blue-400/50 transition-all">
+                    <div id="zone2" class="zone-card glass rounded-lg p-4 border border-blue-400/30 cursor-pointer hover:border-blue-400/50 transition-all">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-semibold text-blue-300">🌊 Khu 2</span>
                             <span class="text-xs text-blue-200/70">
@@ -334,7 +366,7 @@
                     </div>
 
                     <!-- Zone 3 -->
-                    <div id="zone3" class="glass rounded-lg p-4 border border-pink-400/30 cursor-pointer hover:border-pink-400/50 transition-all">
+                    <div id="zone3" class="zone-card glass rounded-lg p-4 border border-pink-400/30 cursor-pointer hover:border-pink-400/50 transition-all">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-semibold text-pink-300">🌺 Khu 3</span>
                             <span class="text-xs text-pink-200/70">
@@ -350,7 +382,7 @@
                     </div>
 
                     <!-- Zone 4 -->
-                    <div id="zone4" class="glass rounded-lg p-4 border border-green-400/30 cursor-pointer hover:border-green-400/50 transition-all">
+                    <div id="zone4" class="zone-card glass rounded-lg p-4 border border-green-400/30 cursor-pointer hover:border-green-400/50 transition-all">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-semibold text-green-300">🌿 Khu 4</span>
                             <span class="text-xs text-green-200/70">
@@ -478,13 +510,14 @@
                     <div class="flex items-center gap-4 text-sm">
                         <div class="flex items-center gap-1">
                             <span>⏰</span>
-                            <span id="adminTimer" class="font-mono text-lg">20:00</span>
+                            <span id="adminTimer" class="font-mono text-lg">13:00</span>
                         </div>
                         <div class="flex items-center gap-1">
                             <span>👥</span>
                             <span id="aliveCount" class="font-semibold text-green-400">0</span>
                             <span class="text-red-200/50">/</span>
                             <span id="totalPlayers" class="font-semibold">0</span>
+                            <span class="text-xs text-red-200/50 ml-1">(Max: 50)</span>
                         </div>
                         <button id="logoutBtn" class="px-3 py-1 rounded-lg border border-red-400/30 text-red-400 hover:bg-red-400/10 transition-all text-sm">
                             Đăng xuất
@@ -512,6 +545,9 @@
                             <button id="startVotingBtn" class="w-full py-2 px-4 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 transition-all text-sm font-semibold" disabled>
                                 🗳️ BẮT ĐẦU BỎ PHIẾU
                             </button>
+                            <button id="endGameBtn" class="w-full py-2 px-4 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 transition-all text-sm font-semibold">
+                                ⏹️ KẾT THÚC GAME
+                            </button>
                         </div>
                     </div>
 
@@ -519,7 +555,7 @@
                     <div class="glass rounded-2xl p-4 flex-1">
                         <div class="flex items-center justify-between mb-3">
                             <h3 class="font-display text-lg font-bold flex items-center gap-2">
-                                <span>👥</span> NGƯỜI CHƠI
+                                <span>👥</span> NGƯỜI CHƠI (<span id="playerCount">0</span>)
                             </h3>
                         </div>
                         <div id="adminPlayerList" class="space-y-2 max-h-64 overflow-y-auto chat-scroll">
@@ -595,8 +631,12 @@
                         <h3 class="font-display text-lg font-bold mb-3 flex items-center gap-2">
                             <span>🗳️</span> BỎ PHIẾU
                         </h3>
-                        <div id="votingStatusPanel" class="text-center text-red-200/70 py-6">
-                            <p class="text-sm">Chưa có vòng bỏ phiếu</p>
+                        <div id="votingStatusPanel" class="text-center text-red-200/70 py-4">
+                            <p class="text-sm mb-2">Chưa có vòng bỏ phiếu</p>
+                            <div class="text-xs">
+                                <div>Yêu cầu: <span id="voteRequestsCount">0</span>/<span id="requiredVotes">0</span></div>
+                                <div id="voteRequestList" class="mt-2 text-left text-xs"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -658,9 +698,91 @@
                 </div>
             </div>
         </div>
+
+        <!-- Vote Request Modal -->
+        <div id="voteRequestModal" class="hidden fullscreen-modal">
+            <div class="modal-content">
+                <h2 class="font-display text-3xl font-bold mb-6 text-center text-yellow-400">📢 YÊU CẦU BỎ PHIẾU</h2>
+                <div class="text-center mb-8">
+                    <div class="text-6xl mb-4">🗳️</div>
+                    <p class="text-xl mb-2"><span id="requesterName" class="font-bold text-yellow-300">[Tên người chơi]</span> đã yêu cầu bỏ phiếu!</p>
+                    <p class="text-red-200/70 mb-6">Cần trên 50% người chơi đồng ý để bắt đầu bỏ phiếu</p>
+                    <div class="text-2xl font-bold mb-4" id="voteRequestTimer">60</div>
+                    <div class="text-sm text-red-200/50 mb-2">Đồng ý: <span id="agreeCount">0</span>/<span id="totalPlayersCount">0</span></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <button id="agreeVoteBtn" class="py-4 px-6 rounded-xl bg-green-500/30 hover:bg-green-500/40 border border-green-400/50 font-semibold text-lg">
+                        👍 ĐỒNG Ý
+                    </button>
+                    <button id="disagreeVoteBtn" class="py-4 px-6 rounded-xl bg-red-500/30 hover:bg-red-500/40 border border-red-400/50 font-semibold text-lg">
+                        👎 KHÔNG ĐỒNG Ý
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accuse Modal -->
+        <div id="accuseModal" class="hidden modal-overlay">
+            <div class="modal-content">
+                <h2 class="font-display text-2xl font-bold mb-4 text-center text-red-300">🚨 TỐ CÁO SÓI</h2>
+                <p class="text-center text-red-200/70 mb-6">Chọn người bạn nghi ngờ là sói:</p>
+                <div id="accuseOptions" class="space-y-2 mb-4 max-h-60 overflow-y-auto">
+                    <!-- Accuse options will be inserted here -->
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="confirmAccuseBtn" class="py-2 px-4 rounded-xl bg-red-600/40 hover:bg-red-600/60 border border-red-500/50 font-semibold text-red-300" disabled>
+                        ✅ TỐ CÁO
+                    </button>
+                    <button id="cancelAccuseBtn" class="py-2 px-4 rounded-xl bg-gray-500/20 hover:bg-gray-500/30 border border-gray-400/30 font-semibold">
+                        ❌ HỦY
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Not Started Modal -->
+        <div id="gameNotStartedModal" class="hidden fullscreen-modal">
+            <div class="modal-content">
+                <div class="text-center">
+                    <div class="text-6xl mb-6">⏳</div>
+                    <h2 class="font-display text-3xl font-bold mb-4 text-yellow-400">CHỜ QUẢN TRÒ BẮT ĐẦU GAME</h2>
+                    <p class="text-red-200/70 mb-6">Trò chơi chưa bắt đầu. Vui lòng chờ quản trò...</p>
+                    <div class="text-sm text-red-200/50">
+                        Người chơi đã tham gia: <span id="waitingPlayersCount">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Discussion Timer Modal -->
+        <div id="discussionModal" class="hidden fullscreen-modal">
+            <div class="modal-content">
+                <div class="text-center">
+                    <div class="text-6xl mb-6">💬</div>
+                    <h2 class="font-display text-3xl font-bold mb-4 text-yellow-400">THẢO LUẬN TRƯỚC KHI BỎ PHIẾU</h2>
+                    <p class="text-red-200/70 mb-6">Có 1 phút để thảo luận trước khi bỏ phiếu</p>
+                    <div class="text-4xl font-bold mb-6" id="discussionTimer">60</div>
+                    <div class="text-sm text-red-200/50">
+                        Chat sẽ bị đóng khi hết thời gian thảo luận
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
+        // Game Configuration
+        const GAME_CONFIG = {
+            TOTAL_TIME: 13 * 60, // 13 phút
+            VOTING_TIME: 3 * 60, // 3 phút cho bỏ phiếu
+            DISCUSSION_TIME: 60, // 1 phút thảo luận
+            WOLF_KILL_COOLDOWN: 20, // 20 giây hồi chiêu
+            MAX_PLAYERS: 50, // Tối đa 50 người chơi
+            ZONE_CAPACITY: 7, // Mỗi khu tối đa 7 người
+            QUESTIONS_PER_ZONE: 10, // 10 câu hỏi mỗi khu
+            MIN_PLAYERS_TO_START: 4 // Ít nhất 4 người để bắt đầu game
+        };
+
         // 40 câu hỏi về "Mộng đắc thái liên" - 10 câu mỗi khu
         const ZONE_QUESTIONS = {
             1: [
@@ -848,7 +970,7 @@
                 {
                     question: "Nguyễn Du đã ví các cô gái hái sen với hình ảnh nào mang tính chất thoát tục?",
                     options: ['Tiên nương', 'Nữ nhi tiên', 'Ngọc nữ', 'Hằng Nga'],
-                    correct: 'Nữ nhi tiên'
+                    correct: 'Nữ nhi tien'
                 },
                 {
                     question: "Trong bài 'Long Thành cầm giả ca', Nguyễn Du đã ca ngợi tiếng đàn của người ca kỹ là báu vật vô giá của kinh đô nào?",
@@ -877,19 +999,23 @@
         let gameState = {
             currentUser: null,
             isAdmin: false,
-            players: {},
+            players: {}, // Tất cả người chơi
             messages: [],
             wolfMessages: [],
-            gameStatus: 'waiting', // waiting, playing, voting, ended
-            totalTime: 20 * 60, // 20 phút
-            timeRemaining: 20 * 60,
+            gameStatus: 'waiting', // waiting, playing, discussion, voting, ended
+            gameStarted: false,
+            totalTime: GAME_CONFIG.TOTAL_TIME,
+            timeRemaining: GAME_CONFIG.TOTAL_TIME,
             gameStartTime: null,
             timerInterval: null,
+            discussionTimer: null,
             votingTimer: null,
-            votingTime: 180, // 3 phút cho bỏ phiếu
+            discussionTime: GAME_CONFIG.DISCUSSION_TIME,
+            votingTime: GAME_CONFIG.VOTING_TIME,
             isVoting: false,
-            voteRequests: new Set(),
-            votes: {},
+            voteRequests: new Set(), // Tên những người yêu cầu bỏ phiếu
+            voteAgrees: new Set(), // Tên những người đồng ý bỏ phiếu
+            votes: {}, // Kết quả bỏ phiếu
             currentZone: null,
             currentQuestion: 0,
             zoneProgress: {1: 0, 2: 0, 3: 0, 4: 0},
@@ -897,11 +1023,15 @@
             playerZones: {},
             eliminatedPlayers: [],
             eliminationDetails: {},
-            roles: {},
-            wolfKillCooldown: 20,
+            roles: {}, // Vai trò thật của người chơi
+            wolfKillCooldown: GAME_CONFIG.WOLF_KILL_COOLDOWN,
             lastKillTime: null,
             taskTimers: {},
-            completedTasks: new Set()
+            completedTasks: new Set(),
+            playerNames: new Set(), // Tên người chơi để kiểm tra trùng
+            voteRequester: null, // Người yêu cầu bỏ phiếu hiện tại
+            chatEnabled: true,
+            accusationTargets: {} // Ai tố cáo ai
         };
 
         // DOM Elements
@@ -910,8 +1040,11 @@
             playerScreen: document.getElementById('playerScreen'),
             adminScreen: document.getElementById('adminScreen'),
             playerNameInput: document.getElementById('playerNameInput'),
+            nameError: document.getElementById('nameError'),
             playerLoginBtn: document.getElementById('playerLoginBtn'),
             adminLoginBtn: document.getElementById('adminLoginBtn'),
+            adminNameInput: document.getElementById('adminNameInput'),
+            adminPasswordInput: document.getElementById('adminPasswordInput'),
             playerExitBtn: document.getElementById('playerExitBtn'),
             logoutBtn: document.getElementById('logoutBtn'),
             playerDisplayName: document.getElementById('playerDisplayName'),
@@ -929,6 +1062,7 @@
             startGameBtn: document.getElementById('startGameBtn'),
             pauseGameBtn: document.getElementById('pauseGameBtn'),
             startVotingBtn: document.getElementById('startVotingBtn'),
+            endGameBtn: document.getElementById('endGameBtn'),
             gameStatusPanel: document.getElementById('gameStatusPanel'),
             votingCountdown: document.getElementById('votingCountdown'),
             questionPanel: document.getElementById('questionPanel'),
@@ -959,21 +1093,53 @@
             wolfKillSection: document.getElementById('wolfKillSection'),
             votingModal: document.getElementById('votingModal'),
             killModal: document.getElementById('killModal'),
+            accuseModal: document.getElementById('accuseModal'),
+            voteRequestModal: document.getElementById('voteRequestModal'),
+            gameNotStartedModal: document.getElementById('gameNotStartedModal'),
+            discussionModal: document.getElementById('discussionModal'),
             adminPlayerList: document.getElementById('adminPlayerList'),
-            votingStatusPanel: document.getElementById('votingStatusPanel')
+            votingStatusPanel: document.getElementById('votingStatusPanel'),
+            playerCount: document.getElementById('playerCount'),
+            voteRequestsCount: document.getElementById('voteRequestsCount'),
+            requiredVotes: document.getElementById('requiredVotes'),
+            voteRequestList: document.getElementById('voteRequestList'),
+            requesterName: document.getElementById('requesterName'),
+            voteRequestTimer: document.getElementById('voteRequestTimer'),
+            agreeCount: document.getElementById('agreeCount'),
+            totalPlayersCount: document.getElementById('totalPlayersCount'),
+            agreeVoteBtn: document.getElementById('agreeVoteBtn'),
+            disagreeVoteBtn: document.getElementById('disagreeVoteBtn'),
+            discussionTimer: document.getElementById('discussionTimer'),
+            waitingPlayersCount: document.getElementById('waitingPlayersCount'),
+            confirmVoteBtn: document.getElementById('confirmVoteBtn'),
+            cancelVoteBtn: document.getElementById('cancelVoteBtn'),
+            confirmKillBtn: document.getElementById('confirmKillBtn'),
+            cancelKillBtn: document.getElementById('cancelKillBtn'),
+            confirmAccuseBtn: document.getElementById('confirmAccuseBtn'),
+            cancelAccuseBtn: document.getElementById('cancelAccuseBtn')
         };
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('Game initializing...');
             setupEventListeners();
-            loadPlayers();
             updateUI();
+            
+            // Show game not started modal for players if game hasn't started
+            if (!gameState.gameStarted && gameState.currentUser && !gameState.currentUser.isAdmin) {
+                showModal('gameNotStartedModal');
+            }
         });
 
         function setupEventListeners() {
-            // Login
+            // Login buttons
             elements.playerLoginBtn.addEventListener('click', playerLogin);
             elements.adminLoginBtn.addEventListener('click', adminLogin);
+            
+            // Player name input - check for duplicates on change
+            elements.playerNameInput.addEventListener('input', checkNameAvailability);
+            
+            // Exit/Logout buttons
             elements.playerExitBtn.addEventListener('click', logout);
             elements.logoutBtn.addEventListener('click', logout);
 
@@ -981,6 +1147,7 @@
             elements.startGameBtn.addEventListener('click', startGame);
             elements.pauseGameBtn.addEventListener('click', togglePause);
             elements.startVotingBtn.addEventListener('click', startVotingSession);
+            elements.endGameBtn.addEventListener('click', endGame);
 
             // Chat
             elements.playerSendBtn.addEventListener('click', sendMessage);
@@ -997,10 +1164,11 @@
             });
 
             // Zones
-            document.querySelectorAll('[id^="zone"]').forEach(zone => {
-                if (zone.id !== 'zoneMembersPanel') {
-                    zone.addEventListener('click', () => enterZone(parseInt(zone.id.replace('zone', ''))));
-                }
+            document.querySelectorAll('.zone-card').forEach(zone => {
+                zone.addEventListener('click', () => {
+                    const zoneId = parseInt(zone.id.replace('zone', ''));
+                    enterZone(zoneId);
+                });
             });
 
             // Question
@@ -1008,69 +1176,132 @@
             elements.leaveZoneBtn.addEventListener('click', leaveZone);
 
             // Actions
-            elements.accuseBtn.addEventListener('click', accusePlayer);
+            elements.accuseBtn.addEventListener('click', openAccuseModal);
             elements.voteBtn.addEventListener('click', openVotingModal);
             elements.requestVoteBtn.addEventListener('click', requestVote);
             elements.killBtn.addEventListener('click', openKillModal);
 
+            // Vote Request Modal
+            elements.agreeVoteBtn.addEventListener('click', () => agreeToVote(true));
+            elements.disagreeVoteBtn.addEventListener('click', () => agreeToVote(false));
+
             // Modals
-            document.getElementById('confirmVoteBtn').addEventListener('click', confirmVote);
-            document.getElementById('cancelVoteBtn').addEventListener('click', closeVotingModal);
-            document.getElementById('confirmKillBtn').addEventListener('click', confirmKill);
-            document.getElementById('cancelKillBtn').addEventListener('click', closeKillModal);
+            elements.confirmVoteBtn.addEventListener('click', confirmVote);
+            elements.cancelVoteBtn.addEventListener('click', closeVotingModal);
+            elements.confirmKillBtn.addEventListener('click', confirmKill);
+            elements.cancelKillBtn.addEventListener('click', closeKillModal);
+            elements.confirmAccuseBtn.addEventListener('click', confirmAccusation);
+            elements.cancelAccuseBtn.addEventListener('click', closeAccuseModal);
+        }
+
+        function checkNameAvailability() {
+            const name = elements.playerNameInput.value.trim();
+            if (gameState.playerNames.has(name)) {
+                elements.nameError.classList.remove('hidden');
+                elements.playerLoginBtn.disabled = true;
+            } else {
+                elements.nameError.classList.add('hidden');
+                elements.playerLoginBtn.disabled = false;
+            }
         }
 
         function playerLogin() {
             const name = elements.playerNameInput.value.trim();
+            
             if (!name) {
                 alert('Vui lòng nhập tên!');
                 return;
             }
 
-            if (gameState.players[name]) {
-                alert('Tên đã tồn tại!');
+            // Check if name already exists
+            if (gameState.playerNames.has(name)) {
+                alert('Tên này đã có người sử dụng! Vui lòng chọn tên khác.');
                 return;
             }
 
+            // Check max players
+            if (Object.keys(gameState.players).length >= GAME_CONFIG.MAX_PLAYERS) {
+                alert(`Đã đạt tối đa ${GAME_CONFIG.MAX_PLAYERS} người chơi!`);
+                return;
+            }
+
+            // Create new player
             gameState.currentUser = {
-                name,
-                role: 'villager',
+                name: name,
+                role: 'villager', // Default role
+                realRole: 'villager', // Real role (hidden for wolves)
                 isAlive: true,
                 score: 0,
                 currentZone: null,
-                completedQuestions: {1: 0, 2: 0, 3: 0, 4: 0}
+                completedQuestions: {1: 0, 2: 0, 3: 0, 4: 0},
+                voteRequested: false,
+                agreedToVote: false,
+                lastKillTime: null
             };
 
+            // Add to game state
             gameState.players[name] = gameState.currentUser;
+            gameState.playerNames.add(name);
 
+            // Update UI
             elements.playerDisplayName.textContent = name;
             elements.playerRole.textContent = 'DÂN LÀNG';
             elements.hiddenRole.classList.remove('hidden');
             
             showScreen('playerScreen');
             addMessage(`${name} đã tham gia game!`, 'system');
+            
+            // Update waiting players count
+            updateWaitingPlayersCount();
+            
+            // Show game not started modal if game hasn't started
+            if (!gameState.gameStarted) {
+                showModal('gameNotStartedModal');
+            }
         }
 
         function adminLogin() {
-            const name = elements.adminNameInput.value;
+            const name = elements.adminNameInput.value.trim() || 'Admin';
             const password = elements.adminPasswordInput.value;
 
+            console.log('Admin login attempt:', { name, password });
+
+            // Check password
             if (password === 'admin123') {
-                gameState.currentUser = { name, isAdmin: true };
+                gameState.currentUser = { 
+                    name: name,
+                    isAdmin: true 
+                };
                 gameState.isAdmin = true;
+                
+                // Update UI
                 elements.adminName.textContent = name;
                 showScreen('adminScreen');
-                addMessage('Quản trò đã đăng nhập!', 'system');
+                
+                addMessage(`Quản trò ${name} đã đăng nhập!`, 'system');
+                console.log('Admin login successful');
+                
+                // Update game controls based on game state
+                updateAdminControls();
             } else {
-                alert('Mật khẩu không đúng!');
+                alert('Mật khẩu không đúng! Vui lòng nhập "admin123"');
+                console.log('Admin login failed - wrong password');
             }
         }
 
         function logout() {
             if (gameState.currentUser) {
+                const userName = gameState.currentUser.name;
+                
                 if (!gameState.currentUser.isAdmin) {
-                    delete gameState.players[gameState.currentUser.name];
+                    // Remove player from game state
+                    delete gameState.players[userName];
+                    gameState.playerNames.delete(userName);
+                    addMessage(`${userName} đã rời game!`, 'system');
+                } else {
+                    addMessage('Quản trò đã đăng xuất!', 'system');
                 }
+                
                 gameState.currentUser = null;
                 gameState.isAdmin = false;
                 showScreen('loginScreen');
@@ -1084,20 +1315,42 @@
             elements[screen].classList.remove('hidden');
         }
 
+        function showModal(modalId) {
+            // Hide all modals first
+            document.querySelectorAll('.modal-overlay, .fullscreen-modal').forEach(modal => {
+                modal.classList.add('hidden');
+            });
+            
+            // Show requested modal
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+            }
+        }
+
+        function hideModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
         function startGame() {
             const playerCount = Object.keys(gameState.players).length;
-            if (playerCount < 4) {
-                alert('Cần ít nhất 4 người chơi!');
+            
+            if (playerCount < GAME_CONFIG.MIN_PLAYERS_TO_START) {
+                alert(`Cần ít nhất ${GAME_CONFIG.MIN_PLAYERS_TO_START} người chơi để bắt đầu game!`);
                 return;
             }
 
             gameState.gameStatus = 'playing';
-            gameState.timeRemaining = gameState.totalTime;
+            gameState.gameStarted = true;
+            gameState.timeRemaining = GAME_CONFIG.TOTAL_TIME;
             gameState.gameStartTime = Date.now();
             
             // Assign roles
             const playerNames = Object.keys(gameState.players);
-            const wolfCount = Math.max(1, Math.floor(playerCount / 3));
+            const wolfCount = Math.max(1, Math.floor(playerCount / 4)); // ~25% wolves
             
             // Shuffle and assign wolves
             const shuffled = [...playerNames].sort(() => Math.random() - 0.5);
@@ -1105,7 +1358,7 @@
             
             wolves.forEach(wolfName => {
                 gameState.players[wolfName].role = 'wolf';
-                gameState.players[wolfName].hiddenRole = 'villager'; // Ẩn vai trò thật
+                gameState.players[wolfName].realRole = 'wolf';
                 gameState.roles[wolfName] = 'wolf';
             });
 
@@ -1113,6 +1366,7 @@
             playerNames.forEach(name => {
                 if (!gameState.roles[name]) {
                     gameState.players[name].role = 'villager';
+                    gameState.players[name].realRole = 'villager';
                     gameState.roles[name] = 'villager';
                 }
             });
@@ -1120,18 +1374,19 @@
             // Start timer
             startGameTimer();
 
-            // Enable voting button
+            // Enable voting button for admin
             elements.startVotingBtn.disabled = false;
 
-            // Show wolf chat for wolves
-            Object.values(gameState.players).forEach(player => {
-                if (player.role === 'wolf') {
-                    // In real implementation, this would be communicated to the player's screen
-                }
-            });
+            // Hide game not started modal for all players
+            hideModal('gameNotStartedModal');
 
-            addMessage('Game đã bắt đầu! Có ' + wolfCount + ' con sói ẩn trong làng.', 'system');
-            addMessage('Người dân phải hoàn thành 40 câu hỏi trong 20 phút để chiến thắng!', 'system');
+            // Send game started message
+            addMessage(`GAME BẮT ĐẦU! Có ${wolfCount} con sói ẩn trong làng.`, 'system');
+            addMessage('Người dân phải hoàn thành 40 câu hỏi trong 13 phút để chiến thắng!', 'system');
+            addMessage('Mỗi người chơi có thể yêu cầu bỏ phiếu. Cần trên 50% đồng ý để bắt đầu.', 'system');
+            
+            // Update UI
+            updateUI();
         }
 
         function startGameTimer() {
@@ -1144,10 +1399,7 @@
                     gameState.timeRemaining--;
                     
                     // Update timers
-                    const minutes = Math.floor(gameState.timeRemaining / 60);
-                    const seconds = gameState.timeRemaining % 60;
-                    const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                    
+                    const timeStr = formatTime(gameState.timeRemaining);
                     elements.playerTimer.textContent = timeStr;
                     elements.adminTimer.textContent = timeStr;
 
@@ -1156,7 +1408,7 @@
                         endGame('timeout');
                     }
 
-                    // Update task timers
+                    // Update task timers and progress
                     updateTaskTimers();
                     
                     updateUI();
@@ -1165,9 +1417,7 @@
         }
 
         function updateTaskTimers() {
-            // In a real implementation, this would update individual task timers
-            // For now, we'll just update the overall progress
-            const totalTasks = 40;
+            const totalTasks = GAME_CONFIG.QUESTIONS_PER_ZONE * 4;
             const completedTasks = Object.values(gameState.zoneProgress).reduce((a, b) => a + b, 0);
             const progress = (completedTasks / totalTasks) * 100;
             
@@ -1175,10 +1425,34 @@
             elements.progressPercent.textContent = `${Math.round(progress)}%`;
             elements.adminProgressFill.style.width = `${progress}%`;
             elements.adminProgressPercent.textContent = `${Math.round(progress)}%`;
+            
+            // Update zone progress displays
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`zone${i}Completed`).textContent = gameState.zoneProgress[i];
+                document.getElementById(`adminZone${i}Progress`).textContent = `${gameState.zoneProgress[i]}/${GAME_CONFIG.QUESTIONS_PER_ZONE}`;
+                
+                const zoneProgress = (gameState.zoneProgress[i] / GAME_CONFIG.QUESTIONS_PER_ZONE) * 100;
+                document.getElementById(`zone${i}Progress`).style.width = `${zoneProgress}%`;
+            }
+        }
+
+        function updateWaitingPlayersCount() {
+            const waitingCount = Object.keys(gameState.players).length;
+            elements.waitingPlayersCount.textContent = waitingCount;
         }
 
         function enterZone(zone) {
             if (!gameState.currentUser || gameState.currentUser.isAdmin) return;
+            
+            if (!gameState.gameStarted) {
+                alert('Game chưa bắt đầu! Vui lòng chờ quản trò.');
+                return;
+            }
+            
+            if (!gameState.currentUser.isAlive) {
+                alert('Bạn đã bị loại và không thể tham gia nhiệm vụ!');
+                return;
+            }
             
             if (gameState.currentZone) {
                 alert('Bạn đang ở khu khác!');
@@ -1186,8 +1460,8 @@
             }
 
             const zoneCount = gameState.zoneMembers[zone].length;
-            if (zoneCount >= 7) {
-                alert(`Khu ${zone} đã đầy (7/7 người)!`);
+            if (zoneCount >= GAME_CONFIG.ZONE_CAPACITY) {
+                alert(`Khu ${zone} đã đầy (${GAME_CONFIG.ZONE_CAPACITY}/${GAME_CONFIG.ZONE_CAPACITY} người)!`);
                 return;
             }
 
@@ -1196,14 +1470,11 @@
             gameState.zoneMembers[zone].push(gameState.currentUser.name);
             gameState.playerZones[gameState.currentUser.name] = zone;
             
-            // Start task timer (1 minute per question)
-            startTaskTimer(zone);
-
             // Show question panel
             elements.questionPanel.classList.remove('hidden');
             elements.zoneMembersPanel.classList.remove('hidden');
             
-            // Load first question
+            // Load appropriate question
             gameState.currentQuestion = gameState.currentUser.completedQuestions[zone] || 0;
             loadQuestion(zone, gameState.currentQuestion);
             
@@ -1220,7 +1491,7 @@
             }
 
             const question = questions[questionIndex];
-            elements.zoneTitle.textContent = `Khu ${zone} - Câu ${questionIndex + 1}/10`;
+            elements.zoneTitle.textContent = `Khu ${zone} - Câu ${questionIndex + 1}/${GAME_CONFIG.QUESTIONS_PER_ZONE}`;
             elements.questionContent.textContent = question.question;
             
             // Clear previous options
@@ -1271,7 +1542,7 @@
                 // Move to next question
                 gameState.currentQuestion++;
                 
-                if (gameState.currentQuestion < 10) {
+                if (gameState.currentQuestion < GAME_CONFIG.QUESTIONS_PER_ZONE) {
                     loadQuestion(zone, gameState.currentQuestion);
                     addMessage(`${gameState.currentUser.name} trả lời đúng câu ${questionIndex + 1} ở Khu ${zone}!`, 'system');
                 } else {
@@ -1279,7 +1550,6 @@
                 }
             } else {
                 alert('Sai rồi! Hãy thử lại.');
-                // In real game, might want to implement retry logic
             }
 
             updateUI();
@@ -1315,26 +1585,11 @@
             updateZoneDisplay();
         }
 
-        function startTaskTimer(zone) {
-            // Start 1 minute timer for the task
-            const taskKey = `${zone}_${gameState.currentUser.name}`;
-            gameState.taskTimers[taskKey] = {
-                startTime: Date.now(),
-                duration: 60 // 1 minute
-            };
-        }
-
         function updateZoneDisplay() {
             // Update zone member counts
             for (let i = 1; i <= 4; i++) {
                 const count = gameState.zoneMembers[i].length;
                 document.getElementById(`zone${i}Count`).textContent = count;
-                document.getElementById(`zone${i}Completed`).textContent = gameState.zoneProgress[i];
-                document.getElementById(`adminZone${i}Progress`).textContent = `${gameState.zoneProgress[i]}/10`;
-                
-                // Update progress bars
-                const progress = (gameState.zoneProgress[i] / 10) * 100;
-                document.getElementById(`zone${i}Progress`).style.width = `${progress}%`;
             }
 
             // Update zone members list
@@ -1351,7 +1606,7 @@
         }
 
         function checkGameProgress() {
-            const totalTasks = 40;
+            const totalTasks = GAME_CONFIG.QUESTIONS_PER_ZONE * 4;
             const completedTasks = Object.values(gameState.zoneProgress).reduce((a, b) => a + b, 0);
             
             if (completedTasks >= totalTasks) {
@@ -1359,49 +1614,193 @@
             }
         }
 
-        function accusePlayer() {
-            if (!gameState.currentUser || gameState.currentUser.isAdmin) return;
+        function openAccuseModal() {
+            if (!gameState.currentUser || gameState.currentUser.isAdmin || !gameState.currentUser.isAlive) return;
             
-            const accused = prompt('Bạn muốn tố cáo ai là sói?');
-            if (accused && gameState.players[accused]) {
-                addMessage(`${gameState.currentUser.name} tố cáo ${accused} là sói!`, 'accusation');
-                gameState.voteRequests.add(gameState.currentUser.name);
-                
-                // Check if enough requests for voting
-                const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive).length;
-                if (gameState.voteRequests.size >= Math.ceil(alivePlayers / 2)) {
-                    startVotingSession();
-                }
+            if (!gameState.gameStarted) {
+                alert('Game chưa bắt đầu!');
+                return;
             }
+            
+            // Get alive players (excluding self)
+            const alivePlayers = Object.values(gameState.players)
+                .filter(p => p.isAlive && p.name !== gameState.currentUser.name);
+            
+            if (alivePlayers.length === 0) {
+                alert('Không có ai để tố cáo!');
+                return;
+            }
+            
+            const optionsDiv = document.getElementById('accuseOptions');
+            optionsDiv.innerHTML = '';
+            
+            alivePlayers.forEach(player => {
+                const button = document.createElement('button');
+                button.className = 'vote-option w-full p-3 text-left';
+                button.innerHTML = `
+                    <div class="font-semibold">${player.name}</div>
+                    <div class="text-xs opacity-70">Đang ở: ${player.currentZone ? `Khu ${player.currentZone}` : 'Không trong khu'}</div>
+                `;
+                button.addEventListener('click', () => {
+                    optionsDiv.querySelectorAll('.vote-option').forEach(btn => {
+                        btn.classList.remove('selected');
+                    });
+                    button.classList.add('selected');
+                    elements.confirmAccuseBtn.disabled = false;
+                });
+                optionsDiv.appendChild(button);
+            });
+            
+            showModal('accuseModal');
+            elements.confirmAccuseBtn.disabled = true;
+        }
+
+        function confirmAccusation() {
+            const selected = document.querySelector('#accuseOptions .selected');
+            if (!selected) return;
+            
+            const accusedName = selected.querySelector('.font-semibold').textContent;
+            
+            // Record accusation
+            gameState.accusationTargets[gameState.currentUser.name] = accusedName;
+            
+            // This also counts as a vote request
+            requestVote();
+            
+            addMessage(`${gameState.currentUser.name} tố cáo ${accusedName} là sói!`, 'accusation');
+            closeAccuseModal();
+        }
+
+        function closeAccuseModal() {
+            hideModal('accuseModal');
         }
 
         function requestVote() {
-            if (!gameState.currentUser || gameState.currentUser.isAdmin) return;
+            if (!gameState.currentUser || gameState.currentUser.isAdmin || !gameState.currentUser.isAlive) return;
             
+            if (!gameState.gameStarted) {
+                alert('Game chưa bắt đầu!');
+                return;
+            }
+            
+            if (gameState.currentUser.voteRequested) {
+                alert('Bạn đã yêu cầu bỏ phiếu rồi!');
+                return;
+            }
+            
+            // Set as vote requester
+            gameState.voteRequester = gameState.currentUser.name;
+            gameState.currentUser.voteRequested = true;
             gameState.voteRequests.add(gameState.currentUser.name);
-            addMessage(`${gameState.currentUser.name} yêu cầu bỏ phiếu!`, 'system');
+            
+            // Reset vote agrees
+            gameState.voteAgrees.clear();
+            
+            // Show vote request modal to all players
+            showVoteRequestModal();
+            
+            addMessage(`${gameState.currentUser.name} đã yêu cầu bỏ phiếu!`, 'system');
+        }
+
+        function showVoteRequestModal() {
+            // Update modal content
+            elements.requesterName.textContent = gameState.voteRequester;
             
             const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive).length;
-            if (gameState.voteRequests.size >= Math.ceil(alivePlayers / 2)) {
-                startVotingSession();
+            elements.totalPlayersCount.textContent = alivePlayers;
+            elements.agreeCount.textContent = '0';
+            
+            // Start 60-second timer for vote request
+            let timeLeft = 60;
+            elements.voteRequestTimer.textContent = timeLeft;
+            
+            const voteRequestTimer = setInterval(() => {
+                timeLeft--;
+                elements.voteRequestTimer.textContent = timeLeft;
+                
+                // Update agree count
+                elements.agreeCount.textContent = gameState.voteAgrees.size;
+                
+                // Check if enough agrees
+                const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive).length;
+                const requiredAgrees = Math.ceil(alivePlayers / 2);
+                
+                if (gameState.voteAgrees.size >= requiredAgrees) {
+                    clearInterval(voteRequestTimer);
+                    startDiscussionPhase();
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(voteRequestTimer);
+                    hideModal('voteRequestModal');
+                    addMessage('Yêu cầu bỏ phiếu đã hết thời gian!', 'system');
+                }
+            }, 1000);
+            
+            // Show modal to all players
+            showModal('voteRequestModal');
+        }
+
+        function agreeToVote(agree) {
+            if (!gameState.currentUser || gameState.currentUser.isAdmin) return;
+            
+            if (agree) {
+                gameState.voteAgrees.add(gameState.currentUser.name);
+                gameState.currentUser.agreedToVote = true;
+                addMessage(`${gameState.currentUser.name} đồng ý bỏ phiếu!`, 'system');
+            } else {
+                gameState.currentUser.agreedToVote = false;
             }
+            
+            // Update UI
+            updateVoteRequestDisplay();
+        }
+
+        function startDiscussionPhase() {
+            hideModal('voteRequestModal');
+            
+            gameState.gameStatus = 'discussion';
+            gameState.discussionTime = GAME_CONFIG.DISCUSSION_TIME;
+            
+            // Show discussion modal
+            elements.discussionTimer.textContent = gameState.discussionTime;
+            showModal('discussionModal');
+            
+            addMessage('Bắt đầu 1 phút thảo luận trước khi bỏ phiếu!', 'system');
+            
+            // Start discussion timer
+            gameState.discussionTimer = setInterval(() => {
+                gameState.discussionTime--;
+                elements.discussionTimer.textContent = gameState.discussionTime;
+                
+                if (gameState.discussionTime <= 0) {
+                    clearInterval(gameState.discussionTimer);
+                    startVotingSession();
+                }
+            }, 1000);
         }
 
         function startVotingSession() {
             if (gameState.isVoting) return;
             
+            clearInterval(gameState.discussionTimer);
+            hideModal('discussionModal');
+            
             gameState.isVoting = true;
             gameState.gameStatus = 'voting';
             gameState.votes = {};
-            gameState.votingTime = 180;
+            gameState.votingTime = GAME_CONFIG.VOTING_TIME;
+            gameState.chatEnabled = false; // Disable chat during voting
             
             elements.gameStatusPanel.classList.remove('hidden');
             elements.statusTitle.textContent = '⏳ ĐANG BỎ PHIẾU';
+            elements.votingCountdown.textContent = formatTime(gameState.votingTime);
             
             // Start voting timer
             startVotingTimer();
             
             addMessage('Vòng bỏ phiếu đã bắt đầu! Mọi người có 3 phút để bỏ phiếu.', 'system');
+            addMessage('Chat đã bị tạm khóa trong thời gian bỏ phiếu.', 'system');
         }
 
         function startVotingTimer() {
@@ -1425,11 +1824,15 @@
                 return;
             }
             
+            if (!gameState.currentUser || gameState.currentUser.isAdmin || !gameState.currentUser.isAlive) return;
+            
             const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive);
             const optionsDiv = document.getElementById('votingOptions');
             optionsDiv.innerHTML = '';
             
             alivePlayers.forEach(player => {
+                if (player.name === gameState.currentUser.name) return; // Can't vote for self
+                
                 const button = document.createElement('button');
                 button.className = 'vote-option w-full';
                 button.innerHTML = `
@@ -1441,14 +1844,14 @@
                         btn.classList.remove('selected');
                     });
                     button.classList.add('selected');
-                    document.getElementById('confirmVoteBtn').disabled = false;
+                    elements.confirmVoteBtn.disabled = false;
                 });
                 optionsDiv.appendChild(button);
             });
             
-            elements.votingModal.classList.remove('hidden');
+            showModal('votingModal');
             document.getElementById('votingTimer').textContent = gameState.votingTime;
-            document.getElementById('confirmVoteBtn').disabled = true;
+            elements.confirmVoteBtn.disabled = true;
         }
 
         function confirmVote() {
@@ -1478,6 +1881,7 @@
             
             gameState.isVoting = false;
             gameState.gameStatus = 'playing';
+            gameState.chatEnabled = true; // Re-enable chat
             elements.gameStatusPanel.classList.add('hidden');
             
             // Count votes
@@ -1502,9 +1906,21 @@
             
             // Reset vote requests
             gameState.voteRequests.clear();
+            gameState.voteAgrees.clear();
             gameState.votes = {};
+            gameState.voteRequester = null;
+            
+            // Reset player vote states
+            Object.values(gameState.players).forEach(player => {
+                player.voteRequested = false;
+                player.agreedToVote = false;
+            });
             
             addMessage('Vòng bỏ phiếu đã kết thúc!', 'system');
+        }
+
+        function closeVotingModal() {
+            hideModal('votingModal');
         }
 
         function openKillModal() {
@@ -1513,11 +1929,19 @@
                 return;
             }
             
-            // Check cooldown
-            if (gameState.lastKillTime && Date.now() - gameState.lastKillTime < gameState.wolfKillCooldown * 1000) {
-                const remaining = Math.ceil((gameState.wolfKillCooldown * 1000 - (Date.now() - gameState.lastKillTime)) / 1000);
-                alert(`Phải chờ ${remaining} giây nữa mới được giết tiếp!`);
+            if (!gameState.gameStarted) {
+                alert('Game chưa bắt đầu!');
                 return;
+            }
+            
+            // Check cooldown
+            if (gameState.currentUser.lastKillTime) {
+                const timeSinceLastKill = Date.now() - gameState.currentUser.lastKillTime;
+                if (timeSinceLastKill < GAME_CONFIG.WOLF_KILL_COOLDOWN * 1000) {
+                    const remaining = Math.ceil((GAME_CONFIG.WOLF_KILL_COOLDOWN * 1000 - timeSinceLastKill) / 1000);
+                    alert(`Phải chờ ${remaining} giây nữa mới được giết tiếp!`);
+                    return;
+                }
             }
             
             // Get players in same zone
@@ -1552,13 +1976,13 @@
                         btn.classList.remove('selected');
                     });
                     button.classList.add('selected');
-                    document.getElementById('confirmKillBtn').disabled = false;
+                    elements.confirmKillBtn.disabled = false;
                 });
                 optionsDiv.appendChild(button);
             });
             
-            elements.killModal.classList.remove('hidden');
-            document.getElementById('confirmKillBtn').disabled = true;
+            showModal('killModal');
+            elements.confirmKillBtn.disabled = true;
         }
 
         function confirmKill() {
@@ -1569,6 +1993,7 @@
             const zone = gameState.currentZone || gameState.currentUser.currentZone;
             
             // Record kill
+            gameState.currentUser.lastKillTime = Date.now();
             gameState.lastKillTime = Date.now();
             
             // Eliminate player
@@ -1576,6 +2001,10 @@
             
             closeKillModal();
             updateKillCooldown();
+        }
+
+        function closeKillModal() {
+            hideModal('killModal');
         }
 
         function eliminatePlayer(playerName, method, zone = null) {
@@ -1588,13 +2017,16 @@
             const eliminationZone = zone || player.currentZone || 'Không xác định';
             const teammates = zone ? gameState.zoneMembers[zone].filter(name => name !== playerName) : [];
             
-            gameState.eliminatedPlayers.push({
+            const eliminationRecord = {
                 name: playerName,
                 zone: eliminationZone,
                 teammates: teammates,
                 method: method,
-                time: new Date().toISOString()
-            });
+                time: new Date().toISOString(),
+                realRole: player.realRole
+            };
+            
+            gameState.eliminatedPlayers.push(eliminationRecord);
             
             // Remove from zone
             if (player.currentZone) {
@@ -1604,13 +2036,13 @@
             // Add to eliminated list
             updateEliminatedList();
             
-            // Send message (not for wolf kills during game)
+            // Send message
             if (method === 'wolf') {
-                addMessage(`💀 ${playerName} đã bị sói cắn chết tại ${eliminationZone}!`, 'elimination');
+                addMessage(`💀 ${playerName} đã bị sói cắn chết tại Khu ${eliminationZone}!`, 'elimination');
                 // Start voting session after wolf kill
-                startVotingSession();
+                requestVote();
             } else if (method === 'voting') {
-                addMessage(`💀 ${playerName} đã bị bỏ phiếu treo cổ!`, 'elimination');
+                addMessage(`💀 ${playerName} đã bị bỏ phiếu treo cổ! (Thực chất là: ${player.realRole === 'wolf' ? 'SÓI' : 'DÂN LÀNG'})`, 'elimination');
             }
             
             // Check win conditions
@@ -1622,44 +2054,52 @@
         function updateEliminatedList() {
             // Player screen
             elements.eliminatedList.innerHTML = '';
-            gameState.eliminatedPlayers.forEach(elim => {
-                const div = document.createElement('div');
-                div.className = 'eliminated-card';
-                div.innerHTML = `
-                    <div class="font-semibold text-red-300 mb-1">💀 ${elim.name}</div>
-                    <div class="text-xs text-red-200/70 mb-1">
-                        <span class="zone-indicator zone-${elim.zone}">📍 Khu ${elim.zone}</span>
-                    </div>
-                    <div class="text-xs text-red-200/60">
-                        <span class="font-semibold">👥 Cùng khu:</span> ${elim.teammates.length > 0 ? elim.teammates.join(', ') : 'Không ai'}
-                    </div>
-                `;
-                elements.eliminatedList.appendChild(div);
-            });
+            if (gameState.eliminatedPlayers.length === 0) {
+                elements.eliminatedList.innerHTML = '<div class="text-xs text-red-200/50 text-center py-4">Chưa ai bị loại</div>';
+            } else {
+                gameState.eliminatedPlayers.forEach(elim => {
+                    const div = document.createElement('div');
+                    div.className = 'eliminated-card';
+                    div.innerHTML = `
+                        <div class="font-semibold text-red-300 mb-1">💀 ${elim.name}</div>
+                        <div class="text-xs text-red-200/70 mb-1">
+                            <span class="zone-indicator zone-${elim.zone}">📍 Khu ${elim.zone}</span>
+                        </div>
+                        <div class="text-xs text-red-200/60">
+                            <span class="font-semibold">👥 Cùng khu:</span> ${elim.teammates.length > 0 ? elim.teammates.join(', ') : 'Không ai'}
+                        </div>
+                    `;
+                    elements.eliminatedList.appendChild(div);
+                });
+            }
             
             // Admin screen
             elements.adminEliminatedList.innerHTML = '';
-            gameState.eliminatedPlayers.forEach(elim => {
-                const div = document.createElement('div');
-                div.className = 'eliminated-card';
-                div.innerHTML = `
-                    <div class="font-semibold text-red-300 mb-1">💀 ${elim.name}</div>
-                    <div class="text-xs text-red-200/70 mb-1">
-                        <span class="zone-indicator zone-${elim.zone}">📍 Khu ${elim.zone}</span>
-                        <span class="ml-2">(${elim.method === 'wolf' ? 'Bị sói cắn' : 'Bị bỏ phiếu'})</span>
-                    </div>
-                    <div class="text-xs text-red-200/60">
-                        <span class="font-semibold">👥 Cùng khu:</span> ${elim.teammates.length > 0 ? elim.teammates.join(', ') : 'Không ai'}
-                    </div>
-                `;
-                elements.adminEliminatedList.appendChild(div);
-            });
+            if (gameState.eliminatedPlayers.length === 0) {
+                elements.adminEliminatedList.innerHTML = '<div class="text-center text-red-200/50 py-4 text-sm">Chưa ai bị loại</div>';
+            } else {
+                gameState.eliminatedPlayers.forEach(elim => {
+                    const div = document.createElement('div');
+                    div.className = 'eliminated-card';
+                    div.innerHTML = `
+                        <div class="font-semibold text-red-300 mb-1">💀 ${elim.name} (${elim.realRole === 'wolf' ? '🐺 SÓI' : '👤 DÂN'})</div>
+                        <div class="text-xs text-red-200/70 mb-1">
+                            <span class="zone-indicator zone-${elim.zone}">📍 Khu ${elim.zone}</span>
+                            <span class="ml-2">(${elim.method === 'wolf' ? 'Bị sói cắn' : 'Bị bỏ phiếu'})</span>
+                        </div>
+                        <div class="text-xs text-red-200/60">
+                            <span class="font-semibold">👥 Cùng khu:</span> ${elim.teammates.length > 0 ? elim.teammates.join(', ') : 'Không ai'}
+                        </div>
+                    `;
+                    elements.adminEliminatedList.appendChild(div);
+                });
+            }
         }
 
         function updateKillCooldown() {
-            if (!gameState.lastKillTime) return;
+            if (!gameState.currentUser || !gameState.currentUser.lastKillTime) return;
             
-            const remaining = Math.ceil((gameState.wolfKillCooldown * 1000 - (Date.now() - gameState.lastKillTime)) / 1000);
+            const remaining = Math.ceil((GAME_CONFIG.WOLF_KILL_COOLDOWN * 1000 - (Date.now() - gameState.currentUser.lastKillTime)) / 1000);
             if (remaining > 0) {
                 elements.killCooldown.textContent = remaining;
                 elements.killBtn.disabled = true;
@@ -1671,8 +2111,8 @@
 
         function checkWinConditions() {
             const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive);
-            const wolves = alivePlayers.filter(p => p.role === 'wolf');
-            const villagers = alivePlayers.filter(p => p.role === 'villager');
+            const wolves = alivePlayers.filter(p => p.realRole === 'wolf');
+            const villagers = alivePlayers.filter(p => p.realRole === 'villager');
             
             // Wolves win if they outnumber or equal villagers
             if (wolves.length >= villagers.length) {
@@ -1687,7 +2127,7 @@
             }
             
             // Check if all tasks completed
-            const totalTasks = 40;
+            const totalTasks = GAME_CONFIG.QUESTIONS_PER_ZONE * 4;
             const completedTasks = Object.values(gameState.zoneProgress).reduce((a, b) => a + b, 0);
             if (completedTasks >= totalTasks) {
                 endGame('villagers_win');
@@ -1699,31 +2139,89 @@
             if (gameState.votingTimer) {
                 clearInterval(gameState.votingTimer);
             }
+            if (gameState.discussionTimer) {
+                clearInterval(gameState.discussionTimer);
+            }
             
             gameState.gameStatus = 'ended';
+            gameState.gameStarted = false;
             
             let message = '';
+            let title = '';
             switch (reason) {
                 case 'wolves_win':
                     message = '🐺 SÓI CHIẾN THẮNG! 🐺';
+                    title = 'SÓI THẮNG';
                     break;
                 case 'villagers_win':
                     message = '🎉 DÂN LÀNG CHIẾN THẮNG! 🎉';
+                    title = 'DÂN LÀNG THẮNG';
                     break;
                 case 'timeout':
                     message = '⏰ HẾT GIỜ! SÓI CHIẾN THẮNG!';
+                    title = 'HẾT GIỜ - SÓI THẮNG';
                     break;
             }
             
-            addMessage(`GAME KẾT THÚC! ${message}`, 'system');
+            // Show end game modal
+            showEndGameModal(title, message);
             
             // Reveal all roles
+            addMessage(`GAME KẾT THÚC! ${message}`, 'system');
             Object.entries(gameState.players).forEach(([name, player]) => {
-                addMessage(`${name}: ${player.role === 'wolf' ? '🐺 SÓI' : '👤 DÂN LÀNG'}`, 'system');
+                addMessage(`${name}: ${player.realRole === 'wolf' ? '🐺 SÓI' : '👤 DÂN LÀNG'}`, 'system');
             });
         }
 
+        function showEndGameModal(title, message) {
+            const modal = document.createElement('div');
+            modal.className = 'fullscreen-modal';
+            modal.innerHTML = `
+                <div class="modal-content text-center">
+                    <div class="text-6xl mb-6">${title.includes('SÓI') ? '🐺' : '🎉'}</div>
+                    <h2 class="font-display text-4xl font-bold mb-4 ${title.includes('SÓI') ? 'text-red-400' : 'text-green-400'}">${title}</h2>
+                    <p class="text-2xl mb-6">${message}</p>
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold mb-2">📊 THỐNG KÊ</h3>
+                        <div class="text-sm space-y-1">
+                            <div>Số người chơi: ${Object.keys(gameState.players).length}</div>
+                            <div>Số sói: ${Object.values(gameState.players).filter(p => p.realRole === 'wolf').length}</div>
+                            <div>Nhiệm vụ hoàn thành: ${Object.values(gameState.zoneProgress).reduce((a, b) => a + b, 0)}/40</div>
+                        </div>
+                    </div>
+                    <button id="restartGameBtn" class="py-3 px-6 rounded-xl btn-primary font-semibold text-lg">
+                        🔄 CHƠI LẠI
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('app').appendChild(modal);
+            
+            document.getElementById('restartGameBtn').addEventListener('click', () => {
+                location.reload();
+            });
+        }
+
+        function togglePause() {
+            if (gameState.gameStatus === 'playing') {
+                gameState.gameStatus = 'paused';
+                clearInterval(gameState.timerInterval);
+                elements.pauseGameBtn.textContent = '▶️ TIẾP TỤC';
+                addMessage('Game đã tạm dừng!', 'system');
+            } else if (gameState.gameStatus === 'paused') {
+                gameState.gameStatus = 'playing';
+                startGameTimer();
+                elements.pauseGameBtn.textContent = '⏸️ TẠM DỪNG';
+                addMessage('Game tiếp tục!', 'system');
+            }
+        }
+
         function sendMessage() {
+            if (!gameState.chatEnabled) {
+                alert('Chat đang bị khóa trong thời gian bỏ phiếu!');
+                return;
+            }
+            
             const message = elements.playerChatInput.value.trim();
             if (!message || !gameState.currentUser) return;
             
@@ -1751,7 +2249,10 @@
             const message = {
                 text,
                 type,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                sender: type === 'player' ? gameState.currentUser.name : 
+                       type === 'wolf' ? gameState.currentUser.name :
+                       type === 'admin' ? 'QUẢN TRÒ' : 'HỆ THỐNG'
             };
             
             gameState.messages.push(message);
@@ -1772,10 +2273,10 @@
             gameState.messages.forEach(msg => {
                 if (msg.type !== 'wolf') { // Don't show wolf chat in main chat
                     const div = document.createElement('div');
-                    div.className = 'p-3 rounded-lg mb-2 bg-white/5';
+                    div.className = `p-3 rounded-lg mb-2 ${msg.type === 'system' ? 'bg-yellow-500/20' : msg.type === 'accusation' ? 'bg-red-500/20' : msg.type === 'elimination' ? 'bg-red-900/20' : 'bg-white/5'}`;
                     div.innerHTML = `
-                        <div class="text-sm opacity-70">${formatTimeForChat(msg.timestamp)}</div>
-                        <div>${msg.text}</div>
+                        <div class="text-xs opacity-70">${formatTimeForChat(msg.timestamp)}</div>
+                        <div><span class="font-semibold ${msg.type === 'system' ? 'text-yellow-400' : msg.type === 'admin' ? 'text-purple-400' : 'text-blue-400'}">${msg.sender}:</span> ${msg.text}</div>
                     `;
                     elements.playerChatArea.appendChild(div);
                 }
@@ -1786,10 +2287,10 @@
             elements.adminChatArea.innerHTML = '';
             gameState.messages.forEach(msg => {
                 const div = document.createElement('div');
-                div.className = 'p-2 rounded mb-1 bg-white/5 text-xs';
+                div.className = `p-2 rounded mb-1 ${msg.type === 'wolf' ? 'bg-red-900/20' : msg.type === 'system' ? 'bg-yellow-500/20' : 'bg-white/5'} text-xs`;
                 div.innerHTML = `
                     <div class="opacity-70">${formatTimeForChat(msg.timestamp)}</div>
-                    <div>${msg.text}</div>
+                    <div><span class="font-semibold ${msg.type === 'wolf' ? 'text-red-400' : msg.type === 'system' ? 'text-yellow-400' : msg.type === 'admin' ? 'text-purple-400' : 'text-blue-400'}">${msg.sender}:</span> ${msg.text}</div>
                 `;
                 elements.adminChatArea.appendChild(div);
             });
@@ -1803,39 +2304,39 @@
                 div.className = 'p-2 rounded mb-1 bg-red-900/20 text-xs';
                 div.innerHTML = `
                     <div class="opacity-70">${formatTimeForChat(msg.timestamp)}</div>
-                    <div>${msg.text}</div>
+                    <div><span class="font-semibold text-red-400">${msg.sender}:</span> ${msg.text}</div>
                 `;
                 elements.wolfChatArea.appendChild(div);
             });
             elements.wolfChatArea.scrollTop = elements.wolfChatArea.scrollHeight;
         }
 
-        function loadPlayers() {
-            // This would load from server in real implementation
-            // For now, we'll just update the display
-            updatePlayerList();
-        }
-
         function updatePlayerList() {
             // Admin player list
             elements.adminPlayerList.innerHTML = '';
-            Object.entries(gameState.players).forEach(([name, player]) => {
-                const div = document.createElement('div');
-                div.className = 'p-2 rounded mb-1 bg-white/5 flex justify-between items-center';
-                div.innerHTML = `
-                    <div>
-                        <span class="font-semibold">${name}</span>
-                        <span class="text-xs ml-2 ${player.role === 'wolf' ? 'text-red-400' : 'text-green-400'}">
-                            ${player.role === 'wolf' ? '🐺' : '👤'}
-                        </span>
-                    </div>
-                    <div class="text-xs">
-                        ${player.isAlive ? '🟢' : '💀'}
-                        <span class="ml-2">${player.score} điểm</span>
-                    </div>
-                `;
-                elements.adminPlayerList.appendChild(div);
-            });
+            elements.playerCount.textContent = Object.keys(gameState.players).length;
+            
+            if (Object.keys(gameState.players).length === 0) {
+                elements.adminPlayerList.innerHTML = '<div class="text-center text-red-200/50 py-4">Chưa có người chơi</div>';
+            } else {
+                Object.entries(gameState.players).forEach(([name, player]) => {
+                    const div = document.createElement('div');
+                    div.className = 'p-2 rounded mb-1 bg-white/5 flex justify-between items-center';
+                    div.innerHTML = `
+                        <div>
+                            <span class="font-semibold">${name}</span>
+                            <span class="text-xs ml-2 ${player.realRole === 'wolf' ? 'text-red-400' : 'text-green-400'}">
+                                ${player.realRole === 'wolf' ? '🐺' : '👤'} ${!player.isAlive ? '(💀)' : ''}
+                            </span>
+                        </div>
+                        <div class="text-xs">
+                            ${player.isAlive ? '🟢' : '💀'}
+                            <span class="ml-2">${player.score} điểm</span>
+                        </div>
+                    `;
+                    elements.adminPlayerList.appendChild(div);
+                });
+            }
             
             // Update alive count
             const aliveCount = Object.values(gameState.players).filter(p => p.isAlive).length;
@@ -1844,6 +2345,23 @@
             elements.playerAlive.textContent = `${aliveCount}/${totalCount}`;
             elements.aliveCount.textContent = aliveCount;
             elements.totalPlayers.textContent = totalCount;
+        }
+
+        function updateVoteRequestDisplay() {
+            const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive).length;
+            const requiredVotes = Math.ceil(alivePlayers / 2);
+            
+            elements.voteRequestsCount.textContent = gameState.voteRequests.size;
+            elements.requiredVotes.textContent = requiredVotes;
+            
+            // Update vote request list
+            elements.voteRequestList.innerHTML = '';
+            gameState.voteRequests.forEach(playerName => {
+                const div = document.createElement('div');
+                div.className = 'text-xs py-1 border-b border-white/10';
+                div.textContent = `• ${playerName}`;
+                elements.voteRequestList.appendChild(div);
+            });
         }
 
         function updateUI() {
@@ -1867,10 +2385,17 @@
                     }
                     
                     // Update action buttons based on game state
-                    const canVote = gameState.isVoting;
+                    const canVote = gameState.isVoting && player.isAlive;
                     elements.voteBtn.disabled = !canVote;
-                    elements.requestVoteBtn.disabled = canVote || !player.isAlive;
+                    elements.requestVoteBtn.disabled = gameState.isVoting || !player.isAlive || player.voteRequested;
                     elements.accuseBtn.disabled = !player.isAlive;
+                    
+                    // Update zone buttons based on game state
+                    const canEnterZone = gameState.gameStarted && player.isAlive;
+                    document.querySelectorAll('.zone-card').forEach(zone => {
+                        zone.style.opacity = canEnterZone ? '1' : '0.5';
+                        zone.style.cursor = canEnterZone ? 'pointer' : 'not-allowed';
+                    });
                 }
             }
             
@@ -1882,6 +2407,35 @@
             
             // Update eliminated list
             updateEliminatedList();
+            
+            // Update vote request display
+            updateVoteRequestDisplay();
+            
+            // Update admin controls
+            updateAdminControls();
+        }
+
+        function updateAdminControls() {
+            if (gameState.isAdmin) {
+                const playerCount = Object.keys(gameState.players).length;
+                elements.startGameBtn.disabled = !gameState.gameStarted ? playerCount < GAME_CONFIG.MIN_PLAYERS_TO_START : true;
+                elements.startVotingBtn.disabled = !gameState.isVoting;
+                
+                // Update voting status panel
+                const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive).length;
+                const requiredVotes = Math.ceil(alivePlayers / 2);
+                
+                if (gameState.voteRequests.size > 0) {
+                    elements.votingStatusPanel.innerHTML = `
+                        <p class="text-sm mb-2">Đang có yêu cầu bỏ phiếu</p>
+                        <div class="text-xs">
+                            <div>Yêu cầu: ${gameState.voteRequests.size}/${requiredVotes}</div>
+                            <div>Đồng ý: ${gameState.voteAgrees.size}/${requiredVotes}</div>
+                            <div id="voteRequestList" class="mt-2 text-left text-xs"></div>
+                        </div>
+                    `;
+                }
+            }
         }
 
         function formatTime(seconds) {
@@ -1892,30 +2446,10 @@
 
         function formatTimeForChat(timestamp) {
             const date = new Date(timestamp);
-            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
         }
 
-        function togglePause() {
-            if (gameState.gameStatus === 'playing') {
-                gameState.gameStatus = 'paused';
-                clearInterval(gameState.timerInterval);
-                elements.pauseGameBtn.textContent = '▶️ TIẾP TỤC';
-            } else if (gameState.gameStatus === 'paused') {
-                gameState.gameStatus = 'playing';
-                startGameTimer();
-                elements.pauseGameBtn.textContent = '⏸️ TẠM DỪNG';
-            }
-        }
-
-        function closeVotingModal() {
-            elements.votingModal.classList.add('hidden');
-        }
-
-        function closeKillModal() {
-            elements.killModal.classList.add('hidden');
-        }
-
-        // Initialize
+        // Initialize UI
         updateUI();
     </script>
 </body>
