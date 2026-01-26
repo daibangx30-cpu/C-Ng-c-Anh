@@ -1,2456 +1,1187 @@
-<!DOCTYPE html>
-<html lang="vi" class="h-full">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ma Sói - Mộng Đắc Thái Liên</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/_sdk/element_sdk.js"></script>
-    <script src="/_sdk/data_sdk.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            box-sizing: border-box;
-        }
-        
-        .font-display { font-family: 'Playfair Display', serif; }
-        .font-body { font-family: 'Be Vietnam Pro', sans-serif; }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
+/**
+ * Ma Sói - Mộng Đắc Thái Liên
+ * Complete Game Server - Single File Version
+ * Real-time Game Server với Socket.io và MongoDB
+ */
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        
-        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        .slide-in { animation: slideIn 0.3s ease-out forwards; }
-        .pulse-anim { animation: pulse 2s ease-in-out infinite; }
-        
-        .wolf-bg {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-        }
-        
-        .glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .chat-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .chat-scroll::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-        
-        .chat-scroll::-webkit-scrollbar-thumb {
-            background: rgba(239, 68, 68, 0.5);
-            border-radius: 3px;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
-        }
-        
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .input-field {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
-        }
-        
-        .input-field:focus {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: #ef4444;
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
-        }
+// ==================== IMPORTS ====================
+require('dotenv').config();
+const express = require('express');
+const http = require('http');
+const socketIO = require('socket.io');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const { createClient } = require('redis');
+const { RateLimiterRedis } = require('rate-limiter-flexible');
 
-        .progress-bar {
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            overflow: hidden;
-        }
+// ==================== CONFIGURATION ====================
+const app = express();
+const server = http.createServer(app);
+const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/werewolf_game';
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #dc2626, #ef4444);
-            transition: width 0.3s ease;
-        }
+// ==================== MIDDLEWARE ====================
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
 
-        .zone-indicator {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        .zone-1 { background: rgba(139, 92, 246, 0.3); border: 1px solid rgba(139, 92, 246, 0.5); color: #c4b5fd; }
-        .zone-2 { background: rgba(59, 130, 246, 0.3); border: 1px solid rgba(59, 130, 246, 0.5); color: #93c5fd; }
-        .zone-3 { background: rgba(236, 72, 153, 0.3); border: 1px solid rgba(236, 72, 153, 0.5); color: #f9a8d4; }
-        .zone-4 { background: rgba(34, 197, 94, 0.3); border: 1px solid rgba(34, 197, 94, 0.5); color: #86efac; }
+// ==================== MONGOOSE MODELS ====================
 
-        .eliminated-card {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.4);
-            border-radius: 8px;
-            padding: 8px;
-        }
-        
-        .wolf-chat {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+// Kết nối MongoDB
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  useCreateIndex: true,
+  useFindAndModify: false
+});
 
-        .modal-content {
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            border: 2px solid rgba(239, 68, 68, 0.5);
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 500px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            animation: slideIn 0.3s ease-out;
-        }
-        
-        .question-option {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-        }
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.once('open', () => console.log('✅ MongoDB connected'));
 
-        .question-option:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: #ef4444;
-        }
+// GameRoom Schema
+const gameRoomSchema = new mongoose.Schema({
+  roomCode: { 
+    type: String, 
+    unique: true,
+    required: true,
+    uppercase: true,
+    match: /^[A-Z0-9]{6}$/
+  },
+  roomName: { 
+    type: String, 
+    default: 'Ma Sói - Mộng Đắc Thái Liên'
+  },
+  adminId: { 
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Player'
+  },
+  maxPlayers: { 
+    type: Number, 
+    default: 50,
+    min: 5,
+    max: 100
+  },
+  gameStatus: { 
+    type: String, 
+    enum: ['waiting', 'playing', 'voting', 'ended', 'paused'],
+    default: 'waiting'
+  },
+  settings: {
+    gameDuration: { type: Number, default: 780, min: 300, max: 1800 },
+    wolfCount: { type: Number, default: null },
+    discussionTime: { type: Number, default: 60, min: 30, max: 300 },
+    votingTime: { type: Number, default: 180, min: 60, max: 600 },
+    enableChat: { type: Boolean, default: true },
+    enableKillCooldown: { type: Boolean, default: true },
+    privateRoom: { type: Boolean, default: false },
+    password: { type: String, default: null }
+  },
+  players: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Player' 
+  }],
+  spectators: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Player' 
+  }],
+  gameData: {
+    currentPhase: { type: String, default: 'day' },
+    currentZone: { type: Number, default: 1 },
+    dayCount: { type: Number, default: 1 },
+    phaseEndTime: { type: Date },
+    killedPlayers: [{ 
+      playerId: mongoose.Schema.Types.ObjectId,
+      killedBy: mongoose.Schema.Types.ObjectId,
+      phase: String,
+      timestamp: Date
+    }],
+    voteResults: [{
+      phase: String,
+      accusedPlayer: mongoose.Schema.Types.ObjectId,
+      voteCount: Number,
+      voters: [mongoose.Schema.Types.ObjectId]
+    }]
+  },
+  createdAt: { type: Date, default: Date.now },
+  startedAt: Date,
+  endedAt: Date
+}, {
+  timestamps: true
+});
 
-        .question-option.selected {
-            background: rgba(239, 68, 68, 0.3);
-            border-color: #ef4444;
-        }
-        
-        .vote-option {
-            background: rgba(59, 130, 246, 0.15);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            border-radius: 12px;
-            padding: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+gameRoomSchema.index({ gameStatus: 1 });
+gameRoomSchema.index({ createdAt: -1 });
+gameRoomSchema.index({ 'settings.privateRoom': 1 });
 
-        .vote-option:hover {
-            background: rgba(59, 130, 246, 0.3);
-            border-color: #3b82f6;
-        }
+const GameRoom = mongoose.model('GameRoom', gameRoomSchema);
 
-        .vote-option.selected {
-            background: rgba(34, 197, 94, 0.3);
-            border-color: #22c55e;
-        }
-        
-        .kill-option {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 12px;
-            padding: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+// Player Schema
+const playerSchema = new mongoose.Schema({
+  socketId: { type: String, index: true },
+  playerName: { 
+    type: String, 
+    required: true,
+    trim: true,
+    minlength: 2,
+    maxlength: 20
+  },
+  roomId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'GameRoom',
+    index: true
+  },
+  role: { 
+    type: String, 
+    enum: ['villager', 'wolf', 'seer', 'guardian', 'hunter'],
+    default: 'villager'
+  },
+  revealedRole: { 
+    type: String, 
+    default: 'villager' 
+  },
+  isAlive: { 
+    type: Boolean, 
+    default: true,
+    index: true
+  },
+  isOnline: {
+    type: Boolean,
+    default: true,
+    index: true
+  },
+  score: { 
+    type: Number, 
+    default: 0 
+  },
+  currentZone: { 
+    type: Number, 
+    min: 1, 
+    max: 4,
+    default: 1
+  },
+  completedQuestions: {
+    zone1: { type: Number, default: 0 },
+    zone2: { type: Number, default: 0 },
+    zone3: { type: Number, default: 0 },
+    zone4: { type: Number, default: 0 }
+  },
+  killCooldown: { 
+    type: Date 
+  },
+  voteTarget: { 
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Player'
+  },
+  accusedTarget: { 
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Player'
+  },
+  isReady: { 
+    type: Boolean, 
+    default: false 
+  },
+  joinTime: { 
+    type: Date, 
+    default: Date.now 
+  },
+  lastSeen: { 
+    type: Date, 
+    default: Date.now 
+  },
+  totalGames: {
+    type: Number,
+    default: 0
+  },
+  gamesWon: {
+    type: Number,
+    default: 0
+  },
+  gamesLost: {
+    type: Number,
+    default: 0
+  },
+  stats: {
+    kills: { type: Number, default: 0 },
+    correctAnswers: { type: Number, default: 0 },
+    wrongAnswers: { type: Number, default: 0 },
+    voteAccuracy: { type: Number, default: 0 }
+  }
+}, {
+  timestamps: true
+});
 
-        .kill-option:hover {
-            background: rgba(239, 68, 68, 0.3);
-            border-color: #ef4444;
-        }
+playerSchema.index({ roomId: 1, isAlive: 1 });
+playerSchema.index({ roomId: 1, role: 1 });
+playerSchema.index({ roomId: 1, score: -1 });
 
-        .kill-option.selected {
-            background: rgba(239, 68, 68, 0.4);
-            border-color: #dc2626;
-        }
-        
-        .role-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        
-        .role-wolf { background: rgba(239, 68, 68, 0.3); color: #fca5a5; }
-        .role-villager { background: rgba(34, 197, 94, 0.3); color: #86efac; }
-        
-        .notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            border: 2px solid rgba(239, 68, 68, 0.5);
-            border-radius: 20px;
-            padding: 40px;
-            z-index: 1000;
-            text-align: center;
-            max-width: 90%;
-            width: 500px;
-        }
-        
-        .fullscreen-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 2000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-    </style>
-</head>
-<body class="h-full font-body wolf-bg text-white overflow-auto">
-    <div id="app" class="min-h-full w-full">
-        <!-- Login Screen -->
-        <div id="loginScreen" class="min-h-full flex items-center justify-center p-4">
-            <div class="glass rounded-3xl p-8 md:p-12 max-w-md w-full text-center fade-in">
-                <div class="relative w-32 h-32 mx-auto mb-8">
-                    <div class="text-6xl">🐺</div>
-                </div>
-                <h1 class="font-display text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">MA SÓI</h1>
-                <p class="text-red-200/70 mb-6">Mộng Đắc Thái Liên - 13 phút</p>
-                <div class="space-y-4 mb-8">
-                    <label for="playerNameInput" class="block text-left text-red-200/80 text-sm mb-1">NHẬP TÊN CỦA BẠN</label>
-                    <input type="text" id="playerNameInput" placeholder="Nhập tên của bạn..." class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none">
-                    <div id="nameError" class="text-red-400 text-sm hidden">Tên này đã có người sử dụng!</div>
-                    <button id="playerLoginBtn" class="btn-primary w-full py-3 rounded-xl font-semibold text-white">
-                        🎮 VÀO GAME
-                    </button>
-                </div>
-                <div class="border-t border-white/10 pt-6">
-                    <p class="text-red-200/50 text-sm mb-4">Dành cho Quản trò</p>
-                    <div class="space-y-3">
-                        <input type="text" id="adminNameInput" placeholder="Tên Admin" value="Admin" class="input-field w-full px-4 py-2 rounded-lg text-white placeholder-white/40 outline-none text-sm">
-                        <input type="password" id="adminPasswordInput" placeholder="Mật khẩu: admin123" class="input-field w-full px-4 py-2 rounded-lg text-white placeholder-white/40 outline-none text-sm">
-                        <button id="adminLoginBtn" class="w-full py-2 rounded-lg font-medium text-red-300 border border-red-400/30 hover:bg-red-400/10 transition-all text-sm">
-                            🔐 ĐĂNG NHẬP ADMIN
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+const Player = mongoose.model('Player', playerSchema);
 
-        <!-- Player Game Screen -->
-        <div id="playerScreen" class="hidden min-h-full flex flex-col">
-            <!-- Header -->
-            <header class="glass border-b border-white/10 px-4 py-3">
-                <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">🐺</span>
-                        <div>
-                            <span class="text-red-200/70 text-sm">Tên:</span>
-                            <span id="playerDisplayName" class="font-semibold ml-1">---</span>
-                            <span class="text-red-200/50 mx-2">|</span>
-                            <span class="text-red-200/70 text-sm">Vai:</span>
-                            <span id="playerRole" class="font-semibold ml-1">???</span>
-                            <span id="hiddenRole" class="hidden role-badge role-villager ml-2">DÂN LÀNG</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4 text-sm">
-                        <div class="flex items-center gap-1">
-                            <span>⏰</span>
-                            <span id="playerTimer" class="font-mono">13:00</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <span>👥</span>
-                            <span id="playerAlive" class="font-semibold text-green-400">0/0</span>
-                        </div>
-                        <button id="playerExitBtn" class="px-3 py-1 rounded-lg border border-red-400/30 text-red-400 hover:bg-red-400/10 transition-all text-xs">
-                            Thoát
-                        </button>
-                    </div>
-                </div>
-            </header>
+// GameSession Schema (lưu lịch sử game)
+const gameSessionSchema = new mongoose.Schema({
+  roomCode: String,
+  roomId: { type: mongoose.Schema.Types.ObjectId, ref: 'GameRoom' },
+  players: [{
+    playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
+    playerName: String,
+    role: String,
+    finalScore: Number,
+    survived: Boolean,
+    kills: Number,
+    correctAnswers: Number
+  }],
+  winner: { type: String, enum: ['villagers', 'wolves', 'draw'] },
+  gameDuration: Number,
+  startedAt: Date,
+  endedAt: Date,
+  events: [{
+    type: { type: String },
+    playerId: mongoose.Schema.Types.ObjectId,
+    targetId: mongoose.Schema.Types.ObjectId,
+    data: mongoose.Schema.Types.Mixed,
+    timestamp: Date
+  }],
+  settings: mongoose.Schema.Types.Mixed
+}, {
+  timestamps: true
+});
 
-            <!-- Game Status Panel -->
-            <div id="gameStatusPanel" class="glass border-b border-white/10 mx-4 mt-2 p-4 rounded-xl hidden">
-                <div class="text-center mb-4">
-                    <h3 id="statusTitle" class="text-lg font-bold text-yellow-400 mb-2">⏳ ĐANG BỎ PHIẾU</h3>
-                    <div id="votingCountdown" class="text-2xl font-bold text-red-400">3:00</div>
-                </div>
-            </div>
+const GameSession = mongoose.model('GameSession', gameSessionSchema);
 
-            <!-- Task Progress -->
-            <div class="glass border-b border-white/10 mx-4 mt-2 p-3 rounded-xl">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm font-semibold">📊 Tiến độ nhiệm vụ</span>
-                    <span id="progressPercent" class="text-sm text-green-400">0%</span>
-                </div>
-                <div class="progress-bar">
-                    <div id="progressFill" class="progress-fill" style="width: 0%"></div>
-                </div>
-            </div>
+// Question Schema
+const questionSchema = new mongoose.Schema({
+  zone: { type: Number, required: true, min: 1, max: 4 },
+  difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
+  category: { type: String, default: 'mong_dac_thai_lien' },
+  question: { type: String, required: true },
+  options: [{ type: String, required: true }],
+  correctAnswer: { type: String, required: true },
+  explanation: String,
+  points: { type: Number, default: 10 }
+});
 
-            <!-- Task Zones -->
-            <div class="glass border-b border-white/10 mx-4 mt-2 p-4 rounded-xl">
-                <h3 class="font-display text-lg font-bold mb-3 flex items-center gap-2">
-                    <span>📋</span> KHU NHIỆM VỤ
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                    <!-- Zone 1 -->
-                    <div id="zone1" class="zone-card glass rounded-lg p-4 border border-purple-400/30 cursor-pointer hover:border-purple-400/50 transition-all">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="font-semibold text-purple-300">🌸 Khu 1</span>
-                            <span class="text-xs text-purple-200/70">
-                                <span id="zone1Count">0</span>/7 người
-                            </span>
-                        </div>
-                        <div class="progress-bar mb-1">
-                            <div id="zone1Progress" class="progress-fill" style="width: 0%"></div>
-                        </div>
-                        <span class="text-xs text-purple-200/70">
-                            <span id="zone1Completed">0</span>/10 câu
-                        </span>
-                    </div>
+const Question = mongoose.model('Question', questionSchema);
 
-                    <!-- Zone 2 -->
-                    <div id="zone2" class="zone-card glass rounded-lg p-4 border border-blue-400/30 cursor-pointer hover:border-blue-400/50 transition-all">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="font-semibold text-blue-300">🌊 Khu 2</span>
-                            <span class="text-xs text-blue-200/70">
-                                <span id="zone2Count">0</span>/7 người
-                            </span>
-                        </div>
-                        <div class="progress-bar mb-1">
-                            <div id="zone2Progress" class="progress-fill" style="width: 0%"></div>
-                        </div>
-                        <span class="text-xs text-blue-200/70">
-                            <span id="zone2Completed">0</span>/10 câu
-                        </span>
-                    </div>
+// ==================== SOCKET.IO SETUP ====================
+const io = socketIO(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || "*",
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  cookie: false
+});
 
-                    <!-- Zone 3 -->
-                    <div id="zone3" class="zone-card glass rounded-lg p-4 border border-pink-400/30 cursor-pointer hover:border-pink-400/50 transition-all">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="font-semibold text-pink-300">🌺 Khu 3</span>
-                            <span class="text-xs text-pink-200/70">
-                                <span id="zone3Count">0</span>/7 người
-                            </span>
-                        </div>
-                        <div class="progress-bar mb-1">
-                            <div id="zone3Progress" class="progress-fill" style="width: 0%"></div>
-                        </div>
-                        <span class="text-xs text-pink-200/70">
-                            <span id="zone3Completed">0</span>/10 câu
-                        </span>
-                    </div>
+// ==================== REDIS SETUP ====================
+let redisClient;
+let rateLimiter;
 
-                    <!-- Zone 4 -->
-                    <div id="zone4" class="zone-card glass rounded-lg p-4 border border-green-400/30 cursor-pointer hover:border-green-400/50 transition-all">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="font-semibold text-green-300">🌿 Khu 4</span>
-                            <span class="text-xs text-green-200/70">
-                                <span id="zone4Count">0</span>/7 người
-                            </span>
-                        </div>
-                        <div class="progress-bar mb-1">
-                            <div id="zone4Progress" class="progress-fill" style="width: 0%"></div>
-                        </div>
-                        <span class="text-xs text-green-200/70">
-                            <span id="zone4Completed">0</span>/10 câu
-                        </span>
-                    </div>
-                </div>
-            </div>
+(async () => {
+  try {
+    redisClient = createClient({ url: REDIS_URL });
+    await redisClient.connect();
+    console.log('✅ Redis connected');
+    
+    rateLimiter = new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: 'socket',
+      points: 15,
+      duration: 1,
+    });
+  } catch (error) {
+    console.log('⚠️ Redis not available, using in-memory storage');
+    redisClient = null;
+  }
+})();
 
-            <!-- Question Panel -->
-            <div id="questionPanel" class="hidden glass border-b border-white/10 mx-4 mt-2 p-4 rounded-xl">
-                <div class="flex items-center justify-between mb-4">
-                    <h4 id="zoneTitle" class="font-semibold text-lg">Khu 1 - Câu 1/10</h4>
-                    <button id="leaveZoneBtn" class="text-xs px-3 py-1 rounded bg-red-500/20 hover:bg-red-500/30 border border-red-400/30">
-                        ❌ Rời khu
-                    </button>
-                </div>
-                <div class="mb-4">
-                    <div id="questionContent" class="text-sm mb-4"></div>
-                    <div id="questionOptions" class="space-y-2"></div>
-                </div>
-                <button id="submitAnswerBtn" class="w-full py-3 px-4 rounded-xl btn-primary font-semibold" disabled>
-                    ✅ GỬI ĐÁP ÁN
-                </button>
-            </div>
+// ==================== GAME STATE MANAGEMENT ====================
+const activeRooms = new Map();
+const playerSockets = new Map();
 
-            <!-- Zone Members -->
-            <div id="zoneMembersPanel" class="hidden glass border-b border-white/10 mx-4 mt-2 p-4 rounded-xl">
-                <h4 class="font-semibold mb-3 text-sm">👥 Thành viên trong khu:</h4>
-                <div id="zoneMembers" class="grid grid-cols-2 gap-2 text-xs"></div>
-            </div>
+class GameEngine {
+  constructor(roomId) {
+    this.roomId = roomId;
+    this.timers = new Map();
+    this.isProcessing = false;
+  }
 
-            <!-- Eliminated Players -->
-            <div id="eliminatedPanel" class="glass border-b border-white/10 mx-4 mt-2 p-4 rounded-xl">
-                <h4 class="font-semibold mb-3 text-sm flex items-center gap-2">
-                    <span>💀</span> Người bị loại
-                </h4>
-                <div id="eliminatedList" class="space-y-2 max-h-40 overflow-y-auto chat-scroll">
-                    <div class="text-xs text-red-200/50 text-center py-4">
-                        Chưa ai bị loại
-                    </div>
-                </div>
-            </div>
+  async startGame(room) {
+    try {
+      const players = await Player.find({ roomId: room._id });
+      
+      // Phân vai
+      const wolfCount = room.settings.wolfCount || Math.max(1, Math.floor(players.length / 4));
+      const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+      
+      shuffledPlayers.forEach((player, index) => {
+        player.role = index < wolfCount ? 'wolf' : 'villager';
+      });
 
-            <!-- Chat Area -->
-            <div class="flex-1 flex flex-col p-4 overflow-hidden">
-                <div id="playerChatArea" class="flex-1 glass rounded-2xl p-4 overflow-y-auto chat-scroll space-y-3 mb-4">
-                    <div class="text-center text-red-200/50 py-8">
-                        <span class="text-3xl mb-2 block">🐺</span>
-                        Chào mừng đến với Ma Sói - Mộng Đắc Thái Liên
-                    </div>
-                </div>
+      // Lưu vai trò
+      await Promise.all(shuffledPlayers.map(p => p.save()));
 
-                <!-- Wolf Chat (Hidden for non-wolves) -->
-                <div id="wolfChatSection" class="hidden mb-4">
-                    <div class="wolf-chat rounded-2xl p-3">
-                        <h4 class="font-semibold text-sm text-red-400 mb-2 flex items-center gap-2">
-                            <span>🐺</span> CHAT SÓI
-                        </h4>
-                        <div id="wolfChatArea" class="glass rounded-lg p-3 overflow-y-auto chat-scroll space-y-2 mb-2 min-h-24 max-h-32">
-                            <div class="text-center text-red-300/50 py-2 text-xs">
-                                Chat riêng cho các sói
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <input type="text" id="wolfChatInput" placeholder="Nhắn tin cho các sói..." class="input-field flex-1 px-3 py-2 rounded-lg text-white placeholder-white/40 outline-none text-sm">
-                            <button id="wolfSendBtn" class="btn-primary px-3 py-2 rounded-lg font-semibold text-sm">
-                                GỬI
-                            </button>
-                        </div>
-                    </div>
-                </div>
+      // Cập nhật trạng thái phòng
+      room.gameStatus = 'playing';
+      room.startedAt = new Date();
+      room.gameData.currentPhase = 'day';
+      room.gameData.dayCount = 1;
+      room.gameData.phaseEndTime = new Date(Date.now() + (room.settings.gameDuration * 1000));
+      await room.save();
 
-                <!-- Main Chat -->
-                <div class="flex gap-2">
-                    <input type="text" id="playerChatInput" placeholder="Nhập tin nhắn..." class="input-field flex-1 px-4 py-3 rounded-xl text-white placeholder-white/40 outline-none">
-                    <button id="playerSendBtn" class="btn-primary px-6 py-3 rounded-xl font-semibold">
-                        GỬI
-                    </button>
-                </div>
-            </div>
+      // Gửi thông báo bắt đầu game
+      io.to(room._id.toString()).emit('game-started', {
+        roomId: room._id,
+        players: shuffledPlayers.map(p => ({
+          id: p._id,
+          name: p.playerName,
+          role: p.role,
+          isAlive: p.isAlive
+        })),
+        gameDuration: room.settings.gameDuration,
+        wolfCount
+      });
 
-            <!-- Action Buttons -->
-            <div class="glass border-t border-white/10 px-4 py-3">
-                <div class="grid grid-cols-3 gap-2">
-                    <button id="accuseBtn" class="py-3 px-4 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                        <span>🚨</span> TỐ CÁO
-                    </button>
-                    <button id="voteBtn" class="py-3 px-4 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                        <span>🗳️</span> BỎ PHIẾU
-                    </button>
-                    <button id="requestVoteBtn" class="py-3 px-4 rounded-xl bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-400/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                        <span>📢</span> YÊU CẦU
-                    </button>
-                </div>
+      // Bắt đầu timer
+      this.startGameTimer(room);
 
-                <!-- Wolf Kill Button -->
-                <div id="wolfKillSection" class="hidden mt-3">
-                    <button id="killBtn" class="w-full py-3 px-4 rounded-xl bg-red-600/30 hover:bg-red-600/40 border border-red-500/50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-red-300">
-                        <span>🔪</span> LOẠI NGƯỜI CHƠI (<span id="killCooldown">20</span>s)
-                    </button>
-                </div>
-            </div>
-        </div>
+      return true;
+    } catch (error) {
+      console.error('Error starting game:', error);
+      throw error;
+    }
+  }
 
-        <!-- Admin Dashboard -->
-        <div id="adminScreen" class="hidden min-h-full flex flex-col">
-            <!-- Admin Header -->
-            <header class="glass border-b border-white/10 px-4 py-3">
-                <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">👑</span>
-                        <div>
-                            <span class="font-semibold text-yellow-400">QUẢN TRÒ</span>
-                            <span id="adminName" class="text-red-200/70 ml-2">Admin</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4 text-sm">
-                        <div class="flex items-center gap-1">
-                            <span>⏰</span>
-                            <span id="adminTimer" class="font-mono text-lg">13:00</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <span>👥</span>
-                            <span id="aliveCount" class="font-semibold text-green-400">0</span>
-                            <span class="text-red-200/50">/</span>
-                            <span id="totalPlayers" class="font-semibold">0</span>
-                            <span class="text-xs text-red-200/50 ml-1">(Max: 50)</span>
-                        </div>
-                        <button id="logoutBtn" class="px-3 py-1 rounded-lg border border-red-400/30 text-red-400 hover:bg-red-400/10 transition-all text-sm">
-                            Đăng xuất
-                        </button>
-                    </div>
-                </div>
-            </header>
+  async submitAnswer(playerId, zone, questionIndex, answer) {
+    try {
+      const player = await Player.findById(playerId);
+      if (!player || !player.isAlive) return false;
 
-            <!-- Admin Content -->
-            <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 p-4 overflow-auto">
-                <!-- Left Column: Controls -->
-                <div class="space-y-4">
-                    <!-- Game Controls -->
-                    <div class="glass rounded-2xl p-4">
-                        <h3 class="font-display text-lg font-bold mb-3 flex items-center gap-2">
-                            <span>🎮</span> ĐIỀU KHIỂN
-                        </h3>
-                        <div class="space-y-2">
-                            <button id="startGameBtn" class="w-full py-2 px-4 rounded-xl bg-green-500/20 hover:bg-green-500/30 border border-green-400/30 transition-all text-sm font-semibold">
-                                ▶️ BẮT ĐẦU GAME
-                            </button>
-                            <button id="pauseGameBtn" class="w-full py-2 px-4 rounded-xl bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-400/30 transition-all text-sm font-semibold">
-                                ⏸️ TẠM DỪNG
-                            </button>
-                            <button id="startVotingBtn" class="w-full py-2 px-4 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 transition-all text-sm font-semibold" disabled>
-                                🗳️ BẮT ĐẦU BỎ PHIẾU
-                            </button>
-                            <button id="endGameBtn" class="w-full py-2 px-4 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 transition-all text-sm font-semibold">
-                                ⏹️ KẾT THÚC GAME
-                            </button>
-                        </div>
-                    </div>
+      // Lấy câu hỏi
+      const questions = await Question.find({ zone }).skip(questionIndex).limit(1);
+      if (!questions.length) return false;
 
-                    <!-- Players List -->
-                    <div class="glass rounded-2xl p-4 flex-1">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="font-display text-lg font-bold flex items-center gap-2">
-                                <span>👥</span> NGƯỜI CHƠI (<span id="playerCount">0</span>)
-                            </h3>
-                        </div>
-                        <div id="adminPlayerList" class="space-y-2 max-h-64 overflow-y-auto chat-scroll">
-                            <div class="text-center text-red-200/50 py-4">
-                                Chưa có người chơi
-                            </div>
-                        </div>
-                    </div>
-                </div>
+      const question = questions[0];
+      const isCorrect = answer === question.correctAnswer;
 
-                <!-- Middle Column: Game Info -->
-                <div class="space-y-4">
-                    <!-- Overall Progress -->
-                    <div class="glass rounded-2xl p-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-semibold">📊 Tiến độ chung</span>
-                            <span id="adminProgressPercent" class="text-sm text-green-400">0%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div id="adminProgressFill" class="progress-fill" style="width: 0%"></div>
-                        </div>
-                    </div>
+      if (isCorrect) {
+        // Cập nhật progress
+        player.completedQuestions[`zone${zone}`] += 1;
+        player.score += question.points;
+        player.stats.correctAnswers += 1;
+        await player.save();
 
-                    <!-- Tasks Status -->
-                    <div class="glass rounded-2xl p-4">
-                        <h3 class="font-display text-lg font-bold mb-3 flex items-center gap-2">
-                            <span>📋</span> TIẾN ĐỘ KHU
-                        </h3>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-xs p-2 bg-white/5 rounded">
-                                <span class="text-purple-300">Khu 1:</span>
-                                <span id="adminZone1Progress" class="font-semibold">0/10</span>
-                            </div>
-                            <div class="flex justify-between text-xs p-2 bg-white/5 rounded">
-                                <span class="text-blue-300">Khu 2:</span>
-                                <span id="adminZone2Progress" class="font-semibold">0/10</span>
-                            </div>
-                            <div class="flex justify-between text-xs p-2 bg-white/5 rounded">
-                                <span class="text-pink-300">Khu 3:</span>
-                                <span id="adminZone3Progress" class="font-semibold">0/10</span>
-                            </div>
-                            <div class="flex justify-between text-xs p-2 bg-white/5 rounded">
-                                <span class="text-green-300">Khu 4:</span>
-                                <span id="adminZone4Progress" class="font-semibold">0/10</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Chat -->
-                    <div class="glass rounded-2xl p-4 flex-1">
-                        <h3 class="font-display text-lg font-bold mb-3 flex items-center gap-2">
-                            <span>💬</span> CHAT TỔNG
-                        </h3>
-                        <div id="adminChatArea" class="flex-1 overflow-y-auto chat-scroll space-y-2 mb-4 min-h-40 max-h-56">
-                            <div class="text-center text-red-200/50 py-8">
-                                <span class="text-3xl mb-2 block">💬</span>
-                                Chat sẽ hiển thị ở đây
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <input type="text" id="adminChatInput" placeholder="Nhắn tin..." class="input-field flex-1 px-4 py-2 rounded-xl text-white placeholder-white/40 outline-none text-sm">
-                            <button id="adminSendBtn" class="btn-primary px-4 py-2 rounded-xl font-semibold text-sm">
-                                GỬI
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column: Voting & Eliminated -->
-                <div class="space-y-4">
-                    <!-- Voting Status -->
-                    <div class="glass rounded-2xl p-4">
-                        <h3 class="font-display text-lg font-bold mb-3 flex items-center gap-2">
-                            <span>🗳️</span> BỎ PHIẾU
-                        </h3>
-                        <div id="votingStatusPanel" class="text-center text-red-200/70 py-4">
-                            <p class="text-sm mb-2">Chưa có vòng bỏ phiếu</p>
-                            <div class="text-xs">
-                                <div>Yêu cầu: <span id="voteRequestsCount">0</span>/<span id="requiredVotes">0</span></div>
-                                <div id="voteRequestList" class="mt-2 text-left text-xs"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Eliminated Players -->
-                    <div class="glass rounded-2xl p-4">
-                        <h3 class="font-display text-lg font-bold mb-3 flex items-center gap-2">
-                            <span>💀</span> BỊ LOẠI
-                        </h3>
-                        <div id="adminEliminatedList" class="space-y-2 max-h-48 overflow-y-auto chat-scroll">
-                            <div class="text-center text-red-200/50 py-4 text-sm">
-                                Chưa ai bị loại
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Voting Modal -->
-        <div id="votingModal" class="hidden modal-overlay">
-            <div class="modal-content">
-                <h2 class="font-display text-2xl font-bold mb-4 text-center text-red-300">🗳️ VÒNG BỎ PHIẾU</h2>
-                <p class="text-center text-red-200/70 mb-6">Bỏ phiếu loại ai?</p>
-                <div id="votingOptions" class="space-y-2 mb-4">
-                    <!-- Vote options will be inserted here -->
-                </div>
-                <div class="text-center text-sm text-red-200/50 mb-4">
-                    <span id="votingTimer" class="font-mono font-bold text-xl">180</span> giây còn lại
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="confirmVoteBtn" class="py-2 px-4 rounded-xl btn-primary font-semibold" disabled>
-                        ✅ XÁC NHẬN
-                    </button>
-                    <button id="cancelVoteBtn" class="py-2 px-4 rounded-xl bg-gray-500/20 hover:bg-gray-500/30 border border-gray-400/30 font-semibold">
-                        ❌ HỦY
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Kill Modal -->
-        <div id="killModal" class="hidden modal-overlay">
-            <div class="modal-content">
-                <h2 class="font-display text-2xl font-bold mb-4 text-center text-red-400">🔪 LOẠI NGƯỜI CHƠI</h2>
-                <p class="text-center text-red-200/70 mb-6">Chọn ai để loại?</p>
-                <div id="killOptions" class="space-y-2 mb-4">
-                    <!-- Kill options will be inserted here -->
-                </div>
-                <div class="text-center text-sm text-red-200/50 mb-4">
-                    ⚠️ Hồi chiêu: 20 giây
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="confirmKillBtn" class="py-2 px-4 rounded-xl bg-red-600/40 hover:bg-red-600/60 border border-red-500/50 font-semibold text-red-300" disabled>
-                        ✅ LOẠI
-                    </button>
-                    <button id="cancelKillBtn" class="py-2 px-4 rounded-xl bg-gray-500/20 hover:bg-gray-500/30 border border-gray-400/30 font-semibold">
-                        ❌ HỦY
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Vote Request Modal -->
-        <div id="voteRequestModal" class="hidden fullscreen-modal">
-            <div class="modal-content">
-                <h2 class="font-display text-3xl font-bold mb-6 text-center text-yellow-400">📢 YÊU CẦU BỎ PHIẾU</h2>
-                <div class="text-center mb-8">
-                    <div class="text-6xl mb-4">🗳️</div>
-                    <p class="text-xl mb-2"><span id="requesterName" class="font-bold text-yellow-300">[Tên người chơi]</span> đã yêu cầu bỏ phiếu!</p>
-                    <p class="text-red-200/70 mb-6">Cần trên 50% người chơi đồng ý để bắt đầu bỏ phiếu</p>
-                    <div class="text-2xl font-bold mb-4" id="voteRequestTimer">60</div>
-                    <div class="text-sm text-red-200/50 mb-2">Đồng ý: <span id="agreeCount">0</span>/<span id="totalPlayersCount">0</span></div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <button id="agreeVoteBtn" class="py-4 px-6 rounded-xl bg-green-500/30 hover:bg-green-500/40 border border-green-400/50 font-semibold text-lg">
-                        👍 ĐỒNG Ý
-                    </button>
-                    <button id="disagreeVoteBtn" class="py-4 px-6 rounded-xl bg-red-500/30 hover:bg-red-500/40 border border-red-400/50 font-semibold text-lg">
-                        👎 KHÔNG ĐỒNG Ý
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Accuse Modal -->
-        <div id="accuseModal" class="hidden modal-overlay">
-            <div class="modal-content">
-                <h2 class="font-display text-2xl font-bold mb-4 text-center text-red-300">🚨 TỐ CÁO SÓI</h2>
-                <p class="text-center text-red-200/70 mb-6">Chọn người bạn nghi ngờ là sói:</p>
-                <div id="accuseOptions" class="space-y-2 mb-4 max-h-60 overflow-y-auto">
-                    <!-- Accuse options will be inserted here -->
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="confirmAccuseBtn" class="py-2 px-4 rounded-xl bg-red-600/40 hover:bg-red-600/60 border border-red-500/50 font-semibold text-red-300" disabled>
-                        ✅ TỐ CÁO
-                    </button>
-                    <button id="cancelAccuseBtn" class="py-2 px-4 rounded-xl bg-gray-500/20 hover:bg-gray-500/30 border border-gray-400/30 font-semibold">
-                        ❌ HỦY
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Game Not Started Modal -->
-        <div id="gameNotStartedModal" class="hidden fullscreen-modal">
-            <div class="modal-content">
-                <div class="text-center">
-                    <div class="text-6xl mb-6">⏳</div>
-                    <h2 class="font-display text-3xl font-bold mb-4 text-yellow-400">CHỜ QUẢN TRÒ BẮT ĐẦU GAME</h2>
-                    <p class="text-red-200/70 mb-6">Trò chơi chưa bắt đầu. Vui lòng chờ quản trò...</p>
-                    <div class="text-sm text-red-200/50">
-                        Người chơi đã tham gia: <span id="waitingPlayersCount">0</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Discussion Timer Modal -->
-        <div id="discussionModal" class="hidden fullscreen-modal">
-            <div class="modal-content">
-                <div class="text-center">
-                    <div class="text-6xl mb-6">💬</div>
-                    <h2 class="font-display text-3xl font-bold mb-4 text-yellow-400">THẢO LUẬN TRƯỚC KHI BỎ PHIẾU</h2>
-                    <p class="text-red-200/70 mb-6">Có 1 phút để thảo luận trước khi bỏ phiếu</p>
-                    <div class="text-4xl font-bold mb-6" id="discussionTimer">60</div>
-                    <div class="text-sm text-red-200/50">
-                        Chat sẽ bị đóng khi hết thời gian thảo luận
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Game Configuration
-        const GAME_CONFIG = {
-            TOTAL_TIME: 13 * 60, // 13 phút
-            VOTING_TIME: 3 * 60, // 3 phút cho bỏ phiếu
-            DISCUSSION_TIME: 60, // 1 phút thảo luận
-            WOLF_KILL_COOLDOWN: 20, // 20 giây hồi chiêu
-            MAX_PLAYERS: 50, // Tối đa 50 người chơi
-            ZONE_CAPACITY: 7, // Mỗi khu tối đa 7 người
-            QUESTIONS_PER_ZONE: 10, // 10 câu hỏi mỗi khu
-            MIN_PLAYERS_TO_START: 4 // Ít nhất 4 người để bắt đầu game
-        };
-
-        // 40 câu hỏi về "Mộng đắc thái liên" - 10 câu mỗi khu
-        const ZONE_QUESTIONS = {
-            1: [
-                { 
-                    question: "Chùm thơ 'Mộng đắc thái liên' của Nguyễn Du nằm trong tập thơ chữ Hán nào?", 
-                    options: ['Thanh Hiên thi tập', 'Bắc hành tạp lục', 'Nam trung tạp ngâm', 'Truyện Kiều'],
-                    correct: 'Nam trung tạp ngâm'
-                },
-                {
-                    question: "Tác phẩm được Nguyễn Du sáng tác vào khoảng thời gian nào?",
-                    options: ['Trước năm 1786', 'Trong mười năm gió bụi (1789-1802)', 'Khoảng những năm 1802 khi ông làm quan cho nhà Nguyễn', 'Sau khi đi sứ Trung Quốc về (sau 1814)'],
-                    correct: 'Khoảng những năm 1802 khi ông làm quan cho nhà Nguyễn'
-                },
-                {
-                    question: "Địa danh nào được nhắc đến như bối cảnh trong giấc mộng hái sen của nhà thơ?",
-                    options: ['Sông Hương (Huế)', 'Khe Nhược Da (Trung Quốc)', 'Hồ Tây (Thăng Long)', 'Sông Lam (Hà Tĩnh)'],
-                    correct: 'Hồ Tây (Thăng Long)'
-                },
-                {
-                    question: "Nguồn cảm hứng chủ đạo của tác phẩm bắt nguồn từ đâu?",
-                    options: ['Một buổi hái sen thực tế cùng bạn bè', 'Nỗi nhớ quê cha đất tổ Hà Tĩnh', 'Một giấc mơ thấy mình đi hái sen thời trẻ ở Thăng Long', 'Một điển tích trong thơ Đường'],
-                    correct: 'Một giấc mơ thấy mình đi hái sen thời trẻ ở Thăng Long'
-                },
-                {
-                    question: "Chùm thơ 'Mộng đắc thái liên' gồm có bao nhiêu bài thơ nhỏ?",
-                    options: ['3 bài', '4 bài', '5 bài', '6 bài'],
-                    correct: '5 bài'
-                },
-                {
-                    question: "Văn bản 'Mộng đắc thái liên' thuộc thể thơ nào?",
-                    options: ['Thất ngôn bát cú', 'Ngũ ngôn', 'Song thất lục bát', 'Thơ tự do'],
-                    correct: 'Ngũ ngôn'
-                },
-                {
-                    question: "Yếu tố thanh điệu nào được tác giả sử dụng chiếm ưu thế để tạo cảm giác hư ảo của giấc mơ?",
-                    options: ['Thanh bằng', 'Thanh trắc', 'Vần trắc', 'Đối thanh nhị tứ phân minh'],
-                    correct: 'Thanh bằng'
-                },
-                {
-                    question: "Bút pháp nghệ thuật nào được Nguyễn Du sử dụng để tái hiện hình ảnh Hồ Tây?",
-                    options: ['Tả thực chi tiết', 'Phóng đại, khoa trương', 'Chấm phá của hội họa thủy mặc', 'Biểu trưng tôn giáo'],
-                    correct: 'Chấm phá của hội họa thủy mặc'
-                },
-                {
-                    question: "Phương thức biểu đạt chính của tác phẩm là gì?",
-                    options: ['Tự sự kết hợp thuyết minh', 'Nghị luận xã hội', 'Miêu tả kết hợp biểu cảm', 'Thuần túy tự sự'],
-                    correct: 'Miêu tả kết hợp biểu cảm'
-                },
-                {
-                    question: "Tác dụng của việc sử dụng nhiều thanh bằng trong bài thơ là gì?",
-                    options: ['Tạo nhịp điệu mạnh mẽ, hào hùng', 'Thể hiện sự phẫn uất, đau đớn', 'Tạo những vang ngân không cùng, khiến giấc chiêm bao thêm thanh và nhẹ', 'Làm cho bài thơ mang sắc thái dân gian'],
-                    correct: 'Tạo những vang ngân không cùng, khiến giấc chiêm bao thêm thanh và nhẹ'
-                }
-            ],
-            2: [
-                {
-                    question: "Hình ảnh 'Giáp điệp quần' trong bài thơ có nghĩa là gì?",
-                    options: ['Áo lụa dài', 'Váy cánh bướm', 'Quần lá tọa', 'Áo choàng thêu hoa'],
-                    correct: 'Váy cánh bướm'
-                },
-                {
-                    question: "Câu thơ 'Thủy trung hữu nhân ảnh' gợi lên điều gì?",
-                    options: ['Sự đông đúc náo nhiệt trên hồ', 'Kỹ thuật bơi lội điêu luyện', 'Sự giao thoa giữa thực và ảo, gợi nhắc khung cảnh chỉ là ký ức trong mộng', 'Nỗi sợ hãi của nhà thơ trước dòng nước'],
-                    correct: 'Sự giao thoa giữa thực và ảo, gợi nhắc khung cảnh chỉ là ký ức trong mộng'
-                },
-                {
-                    question: "Trong bài thơ thứ 2, hoa sen (liên hoa) được Nguyễn Du dành tặng cho đối tượng nào?",
-                    options: ['Người mình yêu thương nhất', 'Bạn bè tâm giao', 'Người mình sợ (sở úy)', 'Tổ tiên, thần linh'],
-                    correct: 'Người mình sợ (sở úy)'
-                },
-                {
-                    question: "Gương sen (thục) được tác giả dành tặng cho ai theo triết lý bài thơ?",
-                    options: ['Những người có địa vị cao', 'Người mình thương (sở liên)', 'Người mới quen', 'Tặng cho tất cả mọi người'],
-                    correct: 'Người mình thương (sở liên)'
-                },
-                {
-                    question: "Từ 'úy' (sợ) trong bài 2 còn có thể hiểu là gì?",
-                    options: ['Sự kính trọng tuyệt đối', 'Tình ý giận hờn, ghét yêu trong quan hệ nam nữ', 'Nỗi khiếp sợ trước uy quyền', 'Sự xa lạ, không quen biết'],
-                    correct: 'Tình ý giận hờn, ghét yêu trong quan hệ nam nữ'
-                },
-                {
-                    question: "Chi tiết âm thanh nào trong bài 3 khiến nhân vật trữ tình cảm thấy 'xốn xang'?",
-                    options: ['Tiếng sóng vỗ mạn thuyền', 'Tiếng hát giao duyên', 'Tiếng cười nói vang lên sau khóm hoa của cô hàng xóm', 'Tiếng chim hót trên mặt hồ'],
-                    correct: 'Tiếng cười nói vang lên sau khóm hoa của cô hàng xóm'
-                },
-                {
-                    question: "Hình ảnh 'sợi tơ bền' (liên ty) ẩn trong cuống sen mang ý nghĩa ẩn dụ cho điều gì?",
-                    options: ['Sự mỏng manh của cuộc đời', 'Những khó khăn vất vả của công việc hái sen', 'Tình cảm sâu nặng, bền bỉ và những mối liên hệ vô hình không thể cắt đứt', 'Sự vô dụng của những bộ phận bên ngoài bông hoa'],
-                    correct: 'Tình cảm sâu nặng, bền bỉ và những mối liên hệ vô hình không thể cắt đứt'
-                },
-                {
-                    question: "Lời khuyên 'Hái sen chớ đụng ngó' trong bài thơ cuối nhằm mục đích gì?",
-                    options: ['Để ngó sen không bị bẩn', 'Để dành ngó sen đi bán kiếm lời', 'Để năm sau hoa vẫn có thể tiếp tục sinh sôi', 'Để không làm đục nước hồ'],
-                    correct: 'Để năm sau hoa vẫn có thể tiếp tục sinh sôi'
-                },
-                {
-                    question: "Hình ảnh con thuyền chất đầy hoa sen trong bài 2 còn được phân tích mang ẩn dụ về điều gì?",
-                    options: ['Sự giàu sang, trù phú', 'Những trách nhiệm, gánh nặng công danh trên vai người làm quan', 'Sự tham lam của người hái sen', 'Cuộc dạo chơi không mục đích'],
-                    correct: 'Những trách nhiệm, gánh nặng công danh trên vai người làm quan'
-                },
-                {
-                    question: "Nhân vật 'cô hàng xóm' trong bài 3 thường được các giai thoại cho là ai?",
-                    options: ['Thúy Kiều', 'Bà Huyện Thanh Quan', 'Nữ sĩ Hồ Xuân Hương', 'Một kỹ nữ ở đất Long Thành'],
-                    correct: 'Nữ sĩ Hồ Xuân Hương'
-                }
-            ],
-            3: [
-                {
-                    question: "Triết lý nhân sinh sâu sắc mà Nguyễn Du gửi gắm qua hình ảnh cuống sen và ngó sen là gì?",
-                    options: ['Chỉ có vẻ đẹp rực rỡ bên ngoài (hoa) mới đáng trân trọng', 'Mọi thứ trên đời đều mau tàn như hoa sen', 'Mỗi cá nhân ở mọi vị trí đều có giá trị riêng và cần được đánh giá công bằng', 'Nên sống ẩn dật, tránh xa bụi trần'],
-                    correct: 'Mỗi cá nhân ở mọi vị trí đều có giá trị riêng và cần được đánh giá công bằng'
-                },
-                {
-                    question: "Thái độ 'Hạ mục vô nhân' bị Nguyễn Du cảnh tỉnh qua hình ảnh nào?",
-                    options: ['Việc hái sen quá nhiều trên thuyền', 'Việc người hái sen làm ướt quần áo', 'Việc người đời chỉ coi trọng hoa sen mà khinh rẻ thân sen, cuống sen', 'Việc chèo thuyền nhỏ trên hồ rộng lớn'],
-                    correct: 'Việc người đời chỉ coi trọng hoa sen mà khinh rẻ thân sen, cuống sen'
-                },
-                {
-                    question: "Bài học về 'tư duy bền vững' được thể hiện rõ nhất qua câu thơ nào?",
-                    options: ["'Thủy trung hữu nhân ảnh'", "'Thục dĩ tặng sở liên'", "'Thái chi vật thương ngẫu / Minh niên bất phục sinh'", "'Cộng tri liên liên hoa'"],
-                    correct: "'Thái chi vật thương ngẫu / Minh niên bất phục sinh'"
-                },
-                {
-                    question: "Việc phân chia 'tặng hoa cho người sợ, tặng gương cho người thương' cho thấy bản lĩnh gì của người quân tử?",
-                    options: ['Sự nhút nhát trước quyền lực', 'Sự thực dụng trong đối nhân xử thế', 'Sự rạch ròi giữa ngoại giao xã hội và tình cảm chân thành (nội cương ngoại nhu)', 'Sự thiếu quyết đoán trong tình yêu'],
-                    correct: 'Sự rạch ròi giữa ngoại giao xã hội và tình cảm chân thành (nội cương ngoại nhu)'
-                },
-                {
-                    question: "Trong văn hóa Đông Á và tư tưởng Phật giáo ảnh hưởng đến Nguyễn Du, hoa sen là biểu tượng của điều gì?",
-                    options: ['Sự giàu sang phú quý', 'Tinh thần vô nhiễm, không bị vẩn đục bởi bùn nhơ (tham dục)', 'Sự yếu đuối, mong manh', 'Quyền lực của giai cấp thống trị'],
-                    correct: 'Tinh thần vô nhiễm, không bị vẩn đục bởi bùn nhơ (tham dục)'
-                },
-                {
-                    question: "Tại sao tác giả coi trọng ngó sen là biểu tượng của tương lai?",
-                    options: ['Vì ngó sen có thể ăn được', 'Vì ngó sen nằm sâu dưới bùn khó tìm', 'Vì đó là gốc rễ, nền tảng để sự sống được tiếp nối sinh sôi', 'Vì ngó sen quý hơn hoa sen'],
-                    correct: 'Vì đó là gốc rễ, nền tảng để sự sống được tiếp nối sinh sôi'
-                },
-                {
-                    question: "Hình ảnh 'sợi tơ bền' (liên ty) trong bài 4 có sự tương đồng với ý tứ câu thơ nào trong 'Truyện Kiều'?",
-                    options: ["'Dẫu lìa ngó ý còn vương tơ lòng'", "'Hoa cười ngọc thốt đoan trang'", "'Lơ thơ tơ liễu buông mành'", "'Sương in mặt tuyết, tuyết pha thân mày'"],
-                    correct: "'Dẫu lìa ngó ý còn vương tơ lòng'"
-                },
-                {
-                    question: "Theo chùm thơ, mỗi bộ phận của cây sen (hoa, gương, lá, thân) đều được nhìn nhận như thế nào?",
-                    options: ['Có bộ phận quan trọng, có bộ phận thừa', 'Chỉ là vật trang trí cho hồ nước', 'Đều có giá trị và đóng góp riêng biệt cho cuộc đời', 'Đều là biểu tượng của sự thất bại'],
-                    correct: 'Đều có giá trị và đóng góp riêng biệt cho cuộc đời'
-                },
-                {
-                    question: "Tâm thế của Nguyễn Du khi viết chùm thơ này (giai đoạn Nam Trung) được mô tả như thế nào?",
-                    options: ['Hào hứng, say mê với quyền lực mới', 'Hoàn toàn tuyệt vọng, muốn tự tử', 'U uẩn, hoài cổ, trăn trở về sự đổi thay của thời thế', 'Hờ hững, không quan tâm đến cuộc sống'],
-                    correct: 'U uẩn, hoài cổ, trăn trở về sự đổi thay của thời thế'
-                },
-                {
-                    question: "'Mộng đắc thái liên' phản ánh sự kết hợp giữa những yếu tố nào trong tâm hồn Nguyễn Du?",
-                    options: ['Sự khô khan của luật lệ và sự lãng mạn của thơ ca', 'Tâm hồn lãng mạn, tinh tế và những suy ngẫm triết lý sâu sắc về nhân sinh', 'Lòng thù hận quá khứ và sự nịnh bợ hiện tại', 'Sự mê muội vào tâm linh và sự xa rời thực tế'],
-                    correct: 'Tâm hồn lãng mạn, tinh tế và những suy ngẫm triết lý sâu sắc về nhân sinh'
-                }
-            ],
-            4: [
-                {
-                    question: "Chùm thơ 'Mộng đắc thái liên' thường được đem ra so sánh với tác phẩm nào của Lý Bạch?",
-                    options: ['Tĩnh dạ tứ', 'Tương tiến tửu', 'Thái liên khúc', 'Hành lộ nan'],
-                    correct: 'Thái liên khúc'
-                },
-                {
-                    question: "Điểm khác biệt lớn nhất giữa thơ hái sen của Nguyễn Du so với các thi sĩ đời Đường là gì?",
-                    options: ['Nguyễn Du dùng thể thơ dài hơn', 'Thơ Nguyễn Du không có hình ảnh phụ nữ', 'Nguyễn Du lồng ghép nhiều trăn trở về thuật ứng xử xã hội và triết luận nhân sinh', 'Thơ Nguyễn Du chỉ thuần túy miêu tả thiên nhiên'],
-                    correct: 'Nguyễn Du lồng ghép nhiều trăn trở về thuật ứng xử xã hội và triết luận nhân sinh'
-                },
-                {
-                    question: "Tên chữ của đại thi hào Nguyễn Du là gì?",
-                    options: ['Thanh Hiên', 'Tố Như', 'Hồng Sơn liệp hộ', 'Du Đức Hầu'],
-                    correct: 'Tố Như'
-                },
-                {
-                    question: "Bài thơ nôm nào của Hồ Xuân Hương được cho là gửi đến Nguyễn Du?",
-                    options: ['Bánh trôi nước', 'Tự tình II', 'Cảm cựu kiêm trình Cần chánh học sĩ Nguyễn hầu', 'Mời trầu'],
-                    correct: 'Cảm cựu kiêm trình Cần chánh học sĩ Nguyễn hầu'
-                },
-                {
-                    question: "Mối tình giữa Nguyễn Du và người được cho là 'cô hàng xóm' được nhắc tới kéo dài trong bao lâu theo lời thơ của nữ sĩ?",
-                    options: ['1 năm', '2 năm', '3 năm', '10 năm'],
-                    correct: '3 năm'
-                },
-                {
-                    question: "Nguyễn Du đã ví các cô gái hái sen với hình ảnh nào mang tính chất thoát tục?",
-                    options: ['Tiên nương', 'Nữ nhi tiên', 'Ngọc nữ', 'Hằng Nga'],
-                    correct: 'Nữ nhi tien'
-                },
-                {
-                    question: "Trong bài 'Long Thành cầm giả ca', Nguyễn Du đã ca ngợi tiếng đàn của người ca kỹ là báu vật vô giá của kinh đô nào?",
-                    options: ['Phú Xuân', 'Trường An (Thăng Long)', 'Gia Định', 'Kinh Đô Huế'],
-                    correct: 'Trường An (Thăng Long)'
-                },
-                {
-                    question: "Triết gia đời Tống nào nổi tiếng với tác phẩm 'Ái liên thuyết' cũng dùng hoa sen để ví người quân tử?",
-                    options: ['Chu Hy', 'Trình Di', 'Chu Đôn Di', 'Vương An Thạch'],
-                    correct: 'Chu Đôn Di'
-                },
-                {
-                    question: "Hình ảnh 'trong nước có bóng người' gợi lên tính chất triết học nào của phương Đông?",
-                    options: ['Sống gấp, hưởng thụ', "'Sắc sắc không không', thực tại chỉ là ảo ảnh phản chiếu", 'Quyết tâm chinh phục thiên nhiên', 'Coi trọng vật chất hơn tinh thần'],
-                    correct: "'Sắc sắc không không', thực tại chỉ là ảo ảnh phản chiếu"
-                },
-                {
-                    question: "Giá trị lớn nhất của 'Mộng đắc thái liên' đối với độc giả hiện đại là gì?",
-                    options: ['Cung cấp kỹ thuật hái sen truyền thống', 'Giới thiệu các địa danh đẹp ở Hà Nội xưa', 'Bài học về sự trân trọng giá trị đa dạng, lòng chân thành và ý thức bảo vệ nền tảng tương lai', 'Hướng dẫn cách viết thơ ngũ ngôn Đường luật'],
-                    correct: 'Bài học về sự trân trọng giá trị đa dạng, lòng chân thành và ý thức bảo vệ nền tảng tương lai'
-                }
-            ]
-        };
-
-        // Game State
-        let gameState = {
-            currentUser: null,
-            isAdmin: false,
-            players: {}, // Tất cả người chơi
-            messages: [],
-            wolfMessages: [],
-            gameStatus: 'waiting', // waiting, playing, discussion, voting, ended
-            gameStarted: false,
-            totalTime: GAME_CONFIG.TOTAL_TIME,
-            timeRemaining: GAME_CONFIG.TOTAL_TIME,
-            gameStartTime: null,
-            timerInterval: null,
-            discussionTimer: null,
-            votingTimer: null,
-            discussionTime: GAME_CONFIG.DISCUSSION_TIME,
-            votingTime: GAME_CONFIG.VOTING_TIME,
-            isVoting: false,
-            voteRequests: new Set(), // Tên những người yêu cầu bỏ phiếu
-            voteAgrees: new Set(), // Tên những người đồng ý bỏ phiếu
-            votes: {}, // Kết quả bỏ phiếu
-            currentZone: null,
-            currentQuestion: 0,
-            zoneProgress: {1: 0, 2: 0, 3: 0, 4: 0},
-            zoneMembers: {1: [], 2: [], 3: [], 4: []},
-            playerZones: {},
-            eliminatedPlayers: [],
-            eliminationDetails: {},
-            roles: {}, // Vai trò thật của người chơi
-            wolfKillCooldown: GAME_CONFIG.WOLF_KILL_COOLDOWN,
-            lastKillTime: null,
-            taskTimers: {},
-            completedTasks: new Set(),
-            playerNames: new Set(), // Tên người chơi để kiểm tra trùng
-            voteRequester: null, // Người yêu cầu bỏ phiếu hiện tại
-            chatEnabled: true,
-            accusationTargets: {} // Ai tố cáo ai
-        };
-
-        // DOM Elements
-        const elements = {
-            loginScreen: document.getElementById('loginScreen'),
-            playerScreen: document.getElementById('playerScreen'),
-            adminScreen: document.getElementById('adminScreen'),
-            playerNameInput: document.getElementById('playerNameInput'),
-            nameError: document.getElementById('nameError'),
-            playerLoginBtn: document.getElementById('playerLoginBtn'),
-            adminLoginBtn: document.getElementById('adminLoginBtn'),
-            adminNameInput: document.getElementById('adminNameInput'),
-            adminPasswordInput: document.getElementById('adminPasswordInput'),
-            playerExitBtn: document.getElementById('playerExitBtn'),
-            logoutBtn: document.getElementById('logoutBtn'),
-            playerDisplayName: document.getElementById('playerDisplayName'),
-            playerRole: document.getElementById('playerRole'),
-            hiddenRole: document.getElementById('hiddenRole'),
-            playerTimer: document.getElementById('playerTimer'),
-            playerAlive: document.getElementById('playerAlive'),
-            adminTimer: document.getElementById('adminTimer'),
-            aliveCount: document.getElementById('aliveCount'),
-            totalPlayers: document.getElementById('totalPlayers'),
-            progressPercent: document.getElementById('progressPercent'),
-            progressFill: document.getElementById('progressFill'),
-            adminProgressPercent: document.getElementById('adminProgressPercent'),
-            adminProgressFill: document.getElementById('adminProgressFill'),
-            startGameBtn: document.getElementById('startGameBtn'),
-            pauseGameBtn: document.getElementById('pauseGameBtn'),
-            startVotingBtn: document.getElementById('startVotingBtn'),
-            endGameBtn: document.getElementById('endGameBtn'),
-            gameStatusPanel: document.getElementById('gameStatusPanel'),
-            votingCountdown: document.getElementById('votingCountdown'),
-            questionPanel: document.getElementById('questionPanel'),
-            zoneTitle: document.getElementById('zoneTitle'),
-            questionContent: document.getElementById('questionContent'),
-            questionOptions: document.getElementById('questionOptions'),
-            submitAnswerBtn: document.getElementById('submitAnswerBtn'),
-            leaveZoneBtn: document.getElementById('leaveZoneBtn'),
-            zoneMembersPanel: document.getElementById('zoneMembersPanel'),
-            zoneMembers: document.getElementById('zoneMembers'),
-            eliminatedList: document.getElementById('eliminatedList'),
-            adminEliminatedList: document.getElementById('adminEliminatedList'),
-            playerChatArea: document.getElementById('playerChatArea'),
-            wolfChatSection: document.getElementById('wolfChatSection'),
-            wolfChatArea: document.getElementById('wolfChatArea'),
-            wolfChatInput: document.getElementById('wolfChatInput'),
-            wolfSendBtn: document.getElementById('wolfSendBtn'),
-            playerChatInput: document.getElementById('playerChatInput'),
-            playerSendBtn: document.getElementById('playerSendBtn'),
-            adminChatArea: document.getElementById('adminChatArea'),
-            adminChatInput: document.getElementById('adminChatInput'),
-            adminSendBtn: document.getElementById('adminSendBtn'),
-            accuseBtn: document.getElementById('accuseBtn'),
-            voteBtn: document.getElementById('voteBtn'),
-            requestVoteBtn: document.getElementById('requestVoteBtn'),
-            killBtn: document.getElementById('killBtn'),
-            killCooldown: document.getElementById('killCooldown'),
-            wolfKillSection: document.getElementById('wolfKillSection'),
-            votingModal: document.getElementById('votingModal'),
-            killModal: document.getElementById('killModal'),
-            accuseModal: document.getElementById('accuseModal'),
-            voteRequestModal: document.getElementById('voteRequestModal'),
-            gameNotStartedModal: document.getElementById('gameNotStartedModal'),
-            discussionModal: document.getElementById('discussionModal'),
-            adminPlayerList: document.getElementById('adminPlayerList'),
-            votingStatusPanel: document.getElementById('votingStatusPanel'),
-            playerCount: document.getElementById('playerCount'),
-            voteRequestsCount: document.getElementById('voteRequestsCount'),
-            requiredVotes: document.getElementById('requiredVotes'),
-            voteRequestList: document.getElementById('voteRequestList'),
-            requesterName: document.getElementById('requesterName'),
-            voteRequestTimer: document.getElementById('voteRequestTimer'),
-            agreeCount: document.getElementById('agreeCount'),
-            totalPlayersCount: document.getElementById('totalPlayersCount'),
-            agreeVoteBtn: document.getElementById('agreeVoteBtn'),
-            disagreeVoteBtn: document.getElementById('disagreeVoteBtn'),
-            discussionTimer: document.getElementById('discussionTimer'),
-            waitingPlayersCount: document.getElementById('waitingPlayersCount'),
-            confirmVoteBtn: document.getElementById('confirmVoteBtn'),
-            cancelVoteBtn: document.getElementById('cancelVoteBtn'),
-            confirmKillBtn: document.getElementById('confirmKillBtn'),
-            cancelKillBtn: document.getElementById('cancelKillBtn'),
-            confirmAccuseBtn: document.getElementById('confirmAccuseBtn'),
-            cancelAccuseBtn: document.getElementById('cancelAccuseBtn')
-        };
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('Game initializing...');
-            setupEventListeners();
-            updateUI();
-            
-            // Show game not started modal for players if game hasn't started
-            if (!gameState.gameStarted && gameState.currentUser && !gameState.currentUser.isAdmin) {
-                showModal('gameNotStartedModal');
-            }
+        // Gửi thông báo
+        io.to(player.roomId.toString()).emit('answer-correct', {
+          playerId: player._id,
+          playerName: player.playerName,
+          zone,
+          points: question.points,
+          streak: player.completedQuestions[`zone${zone}`]
         });
 
-        function setupEventListeners() {
-            // Login buttons
-            elements.playerLoginBtn.addEventListener('click', playerLogin);
-            elements.adminLoginBtn.addEventListener('click', adminLogin);
-            
-            // Player name input - check for duplicates on change
-            elements.playerNameInput.addEventListener('input', checkNameAvailability);
-            
-            // Exit/Logout buttons
-            elements.playerExitBtn.addEventListener('click', logout);
-            elements.logoutBtn.addEventListener('click', logout);
+        // Kiểm tra nếu hoàn thành zone
+        if (player.completedQuestions[`zone${zone}`] >= 10) {
+          io.to(player.roomId.toString()).emit('zone-completed', {
+            playerId: player._id,
+            playerName: player.playerName,
+            zone
+          });
+        }
+      } else {
+        player.stats.wrongAnswers += 1;
+        await player.save();
+      }
 
-            // Game Controls
-            elements.startGameBtn.addEventListener('click', startGame);
-            elements.pauseGameBtn.addEventListener('click', togglePause);
-            elements.startVotingBtn.addEventListener('click', startVotingSession);
-            elements.endGameBtn.addEventListener('click', endGame);
+      return { correct: isCorrect, correctAnswer: question.correctAnswer };
+    } catch (error) {
+      console.error('Error submitting answer:', error);
+      throw error;
+    }
+  }
 
-            // Chat
-            elements.playerSendBtn.addEventListener('click', sendMessage);
-            elements.playerChatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendMessage();
+  async processVote(roomId, voterId, targetId) {
+    try {
+      const room = await GameRoom.findById(roomId);
+      const voter = await Player.findById(voterId);
+      const target = await Player.findById(targetId);
+
+      if (!room || !voter || !target || room.gameStatus !== 'voting') {
+        return false;
+      }
+
+      voter.voteTarget = targetId;
+      await voter.save();
+
+      // Kiểm tra xem đã đủ vote chưa
+      const alivePlayers = await Player.find({ 
+        roomId, 
+        isAlive: true 
+      });
+      
+      const votedPlayers = await Player.find({ 
+        roomId, 
+        isAlive: true,
+        voteTarget: { $exists: true, $ne: null }
+      });
+
+      // Broadcast vote
+      io.to(roomId.toString()).emit('vote-submitted', {
+        voterId,
+        voterName: voter.playerName,
+        targetId,
+        targetName: target.playerName,
+        votesNeeded: Math.ceil(alivePlayers.length / 2)
+      });
+
+      // Nếu đủ vote
+      if (votedPlayers.length >= Math.ceil(alivePlayers.length / 2)) {
+        await this.countVotes(room);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error processing vote:', error);
+      throw error;
+    }
+  }
+
+  async countVotes(room) {
+    try {
+      const players = await Player.find({ roomId: room._id, isAlive: true });
+      
+      // Đếm votes
+      const voteCount = {};
+      players.forEach(player => {
+        if (player.voteTarget) {
+          voteCount[player.voteTarget.toString()] = 
+            (voteCount[player.voteTarget.toString()] || 0) + 1;
+        }
+      });
+
+      // Tìm người bị vote nhiều nhất
+      let maxVotes = 0;
+      let accusedPlayerId = null;
+      
+      for (const [playerId, count] of Object.entries(voteCount)) {
+        if (count > maxVotes) {
+          maxVotes = count;
+          accusedPlayerId = playerId;
+        }
+      }
+
+      if (accusedPlayerId && maxVotes >= Math.ceil(players.length / 2)) {
+        // Loại người chơi
+        const accusedPlayer = await Player.findById(accusedPlayerId);
+        if (accusedPlayer) {
+          accusedPlayer.isAlive = false;
+          await accusedPlayer.save();
+
+          // Lưu kết quả vote
+          room.gameData.voteResults.push({
+            phase: `day-${room.gameData.dayCount}`,
+            accusedPlayer: accusedPlayerId,
+            voteCount: maxVotes,
+            voters: players.filter(p => p.voteTarget?.toString() === accusedPlayerId).map(p => p._id)
+          });
+          await room.save();
+
+          // Thông báo
+          io.to(room._id.toString()).emit('player-eliminated', {
+            playerId: accusedPlayer._id,
+            playerName: accusedPlayer.playerName,
+            reason: 'vote',
+            role: accusedPlayer.role,
+            voteCount: maxVotes
+          });
+
+          // Kiểm tra điều kiện thắng
+          await this.checkWinConditions(room);
+        }
+      }
+
+      // Reset votes
+      await Player.updateMany(
+        { roomId: room._id },
+        { $set: { voteTarget: null } }
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error counting votes:', error);
+      throw error;
+    }
+  }
+
+  async checkWinConditions(room) {
+    try {
+      const players = await Player.find({ roomId: room._id, isAlive: true });
+      const wolves = players.filter(p => p.role === 'wolf');
+      const villagers = players.filter(p => p.role !== 'wolf');
+
+      let winner = null;
+
+      if (wolves.length === 0) {
+        winner = 'villagers';
+      } else if (wolves.length >= villagers.length) {
+        winner = 'wolves';
+      }
+
+      if (winner) {
+        await this.endGame(room, winner);
+      }
+
+      return winner;
+    } catch (error) {
+      console.error('Error checking win conditions:', error);
+      throw error;
+    }
+  }
+
+  async endGame(room, winner) {
+    try {
+      room.gameStatus = 'ended';
+      room.endedAt = new Date();
+      await room.save();
+
+      // Tính điểm và cập nhật thống kê
+      const players = await Player.find({ roomId: room._id });
+      
+      players.forEach(async (player) => {
+        const didWin = (winner === 'wolves' && player.role === 'wolf') || 
+                       (winner === 'villagers' && player.role !== 'wolf');
+        
+        player.totalGames += 1;
+        if (didWin) {
+          player.gamesWon += 1;
+          player.score += 100; // Bonus thắng
+        } else {
+          player.gamesLost += 1;
+        }
+
+        // Tính vote accuracy
+        const alivePlayers = await Player.find({ roomId: room._id, isAlive: true });
+        const wolves = alivePlayers.filter(p => p.role === 'wolf');
+        if (player.voteTarget && wolves.length > 0) {
+          const votedPlayer = await Player.findById(player.voteTarget);
+          if (votedPlayer && votedPlayer.role === 'wolf') {
+            player.stats.voteAccuracy = 
+              (player.stats.voteAccuracy + 1) / player.totalGames;
+          }
+        }
+
+        await player.save();
+      });
+
+      // Tạo game session record
+      const gameSession = new GameSession({
+        roomCode: room.roomCode,
+        roomId: room._id,
+        players: players.map(p => ({
+          playerId: p._id,
+          playerName: p.playerName,
+          role: p.role,
+          finalScore: p.score,
+          survived: p.isAlive,
+          kills: p.stats.kills,
+          correctAnswers: p.stats.correctAnswers
+        })),
+        winner,
+        gameDuration: Math.floor((room.endedAt - room.startedAt) / 1000),
+        startedAt: room.startedAt,
+        endedAt: room.endedAt,
+        settings: room.settings
+      });
+      await gameSession.save();
+
+      // Gửi kết quả game
+      io.to(room._id.toString()).emit('game-ended', {
+        winner,
+        players: players.map(p => ({
+          id: p._id,
+          name: p.playerName,
+          role: p.role,
+          score: p.score,
+          isAlive: p.isAlive,
+          kills: p.stats.kills,
+          correctAnswers: p.stats.correctAnswers
+        })),
+        duration: gameSession.gameDuration
+      });
+
+      // Xóa room khỏi activeRooms
+      activeRooms.delete(room._id.toString());
+
+      return true;
+    } catch (error) {
+      console.error('Error ending game:', error);
+      throw error;
+    }
+  }
+
+  startGameTimer(room) {
+    const timer = setTimeout(async () => {
+      try {
+        const currentRoom = await GameRoom.findById(room._id);
+        if (currentRoom && currentRoom.gameStatus === 'playing') {
+          await this.endGame(currentRoom, 'draw'); // Hòa nếu hết giờ
+        }
+      } catch (error) {
+        console.error('Error in game timer:', error);
+      }
+    }, room.settings.gameDuration * 1000);
+
+    this.timers.set('game', timer);
+  }
+}
+
+// ==================== SOCKET.IO EVENT HANDLERS ====================
+
+io.use(async (socket, next) => {
+  try {
+    if (redisClient && rateLimiter) {
+      await rateLimiter.consume(socket.handshake.address);
+    }
+    next();
+  } catch (error) {
+    console.log('Rate limit exceeded for:', socket.handshake.address);
+    next(new Error('Too many connection attempts'));
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log(`[${new Date().toISOString()}] Client connected: ${socket.id}`);
+  
+  // Heartbeat
+  socket.on('heartbeat', () => {
+    socket.emit('heartbeat-response', { timestamp: Date.now() });
+  });
+
+  // Tạo phòng
+  socket.on('create-room', async ({ playerName, roomName, maxPlayers, settings }) => {
+    try {
+      // Tạo mã phòng ngẫu nhiên
+      const roomCode = generateRoomCode();
+      
+      // Tạo player
+      const player = new Player({
+        socketId: socket.id,
+        playerName,
+        isOnline: true,
+        lastSeen: new Date()
+      });
+      await player.save();
+
+      // Tạo phòng
+      const room = new GameRoom({
+        roomCode,
+        roomName: roomName || `Phòng ${roomCode}`,
+        adminId: player._id,
+        maxPlayers: maxPlayers || 50,
+        settings: {
+          ...settings,
+          wolfCount: settings?.wolfCount || null
+        },
+        players: [player._id]
+      });
+      await room.save();
+
+      player.roomId = room._id;
+      await player.save();
+
+      // Join socket room
+      socket.join(room._id.toString());
+      playerSockets.set(socket.id, { playerId: player._id, roomId: room._id });
+
+      // Khởi tạo game engine
+      activeRooms.set(room._id.toString(), new GameEngine(room._id));
+
+      socket.emit('room-created', {
+        roomId: room._id,
+        roomCode,
+        playerId: player._id,
+        isAdmin: true
+      });
+
+      console.log(`Room created: ${roomCode} by ${playerName}`);
+    } catch (error) {
+      console.error('Error creating room:', error);
+      socket.emit('error', { message: 'Failed to create room' });
+    }
+  });
+
+  // Tham gia phòng
+  socket.on('join-room', async ({ roomCode, playerName, password }) => {
+    try {
+      const room = await GameRoom.findOne({ roomCode: roomCode.toUpperCase() });
+      
+      if (!room) {
+        socket.emit('error', { message: 'Room not found' });
+        return;
+      }
+
+      if (room.gameStatus !== 'waiting') {
+        socket.emit('error', { message: 'Game already started' });
+        return;
+      }
+
+      if (room.players.length >= room.maxPlayers) {
+        socket.emit('error', { message: 'Room is full' });
+        return;
+      }
+
+      if (room.settings.privateRoom && room.settings.password !== password) {
+        socket.emit('error', { message: 'Incorrect password' });
+        return;
+      }
+
+      // Tạo player
+      const player = new Player({
+        socketId: socket.id,
+        playerName,
+        roomId: room._id,
+        isOnline: true,
+        lastSeen: new Date()
+      });
+      await player.save();
+
+      // Thêm vào phòng
+      room.players.push(player._id);
+      await room.save();
+
+      // Join socket room
+      socket.join(room._id.toString());
+      playerSockets.set(socket.id, { playerId: player._id, roomId: room._id });
+
+      // Thông báo cho người khác
+      socket.to(room._id.toString()).emit('player-joined', {
+        playerId: player._id,
+        playerName: player.playerName,
+        totalPlayers: room.players.length
+      });
+
+      // Gửi thông tin phòng cho người chơi mới
+      const players = await Player.find({ roomId: room._id });
+      const roomInfo = {
+        roomId: room._id,
+        roomCode: room.roomCode,
+        roomName: room.roomName,
+        adminId: room.adminId,
+        gameStatus: room.gameStatus,
+        players: players.map(p => ({
+          id: p._id,
+          name: p.playerName,
+          isReady: p.isReady,
+          isOnline: p.isOnline
+        })),
+        settings: room.settings,
+        playerId: player._id,
+        isAdmin: room.adminId.toString() === player._id.toString()
+      };
+
+      socket.emit('room-joined', roomInfo);
+
+      console.log(`Player ${playerName} joined room ${roomCode}`);
+    } catch (error) {
+      console.error('Error joining room:', error);
+      socket.emit('error', { message: 'Failed to join room' });
+    }
+  });
+
+  // Bắt đầu game
+  socket.on('start-game', async ({ roomId }) => {
+    try {
+      const playerData = playerSockets.get(socket.id);
+      if (!playerData) return;
+
+      const room = await GameRoom.findById(roomId);
+      if (!room || room.gameStatus !== 'waiting') return;
+
+      // Kiểm tra quyền admin
+      if (room.adminId.toString() !== playerData.playerId.toString()) {
+        socket.emit('error', { message: 'Only admin can start game' });
+        return;
+      }
+
+      // Kiểm tra số lượng người chơi
+      const players = await Player.find({ roomId });
+      if (players.length < 5) {
+        socket.emit('error', { message: 'Need at least 5 players' });
+        return;
+      }
+
+      // Bắt đầu game
+      const engine = activeRooms.get(roomId.toString());
+      if (engine) {
+        await engine.startGame(room);
+      }
+    } catch (error) {
+      console.error('Error starting game:', error);
+      socket.emit('error', { message: 'Failed to start game' });
+    }
+  });
+
+  // Submit answer
+  socket.on('submit-answer', async ({ roomId, zone, questionIndex, answer }) => {
+    try {
+      const playerData = playerSockets.get(socket.id);
+      if (!playerData) return;
+
+      const engine = activeRooms.get(roomId.toString());
+      if (engine) {
+        const result = await engine.submitAnswer(
+          playerData.playerId, 
+          zone, 
+          questionIndex, 
+          answer
+        );
+        socket.emit('answer-result', result);
+      }
+    } catch (error) {
+      console.error('Error submitting answer:', error);
+      socket.emit('error', { message: 'Failed to submit answer' });
+    }
+  });
+
+  // Vote
+  socket.on('vote-player', async ({ roomId, targetId }) => {
+    try {
+      const playerData = playerSockets.get(socket.id);
+      if (!playerData) return;
+
+      const engine = activeRooms.get(roomId.toString());
+      if (engine) {
+        await engine.processVote(roomId, playerData.playerId, targetId);
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+      socket.emit('error', { message: 'Failed to vote' });
+    }
+  });
+
+  // Chat
+  socket.on('send-message', async ({ roomId, message, type = 'public' }) => {
+    try {
+      const playerData = playerSockets.get(socket.id);
+      if (!playerData) return;
+
+      const player = await Player.findById(playerData.playerId);
+      if (!player || !player.isAlive) return;
+
+      const room = await GameRoom.findById(roomId);
+      if (!room || !room.settings.enableChat) return;
+
+      // Filter bad words
+      const filteredMessage = filterMessage(message);
+
+      const chatData = {
+        playerId: player._id,
+        playerName: player.playerName,
+        message: filteredMessage,
+        type,
+        timestamp: new Date(),
+        role: type === 'wolf' ? 'wolf' : player.revealedRole
+      };
+
+      // Gửi tin nhắn
+      if (type === 'wolf') {
+        // Chỉ gửi cho sói
+        const wolves = await Player.find({ 
+          roomId, 
+          role: 'wolf',
+          isAlive: true 
+        });
+        
+        wolves.forEach(wolf => {
+          const wolfSocket = findSocketByPlayerId(wolf._id);
+          if (wolfSocket) {
+            io.to(wolfSocket).emit('new-message', chatData);
+          }
+        });
+      } else if (type === 'private') {
+        // Chat riêng (cần target)
+        socket.emit('new-message', chatData);
+      } else {
+        // Chat công khai
+        io.to(roomId.toString()).emit('new-message', chatData);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  });
+
+  // Ready/unready
+  socket.on('toggle-ready', async ({ roomId }) => {
+    try {
+      const playerData = playerSockets.get(socket.id);
+      if (!playerData) return;
+
+      const player = await Player.findById(playerData.playerId);
+      if (!player) return;
+
+      player.isReady = !player.isReady;
+      await player.save();
+
+      io.to(roomId.toString()).emit('player-ready-changed', {
+        playerId: player._id,
+        playerName: player.playerName,
+        isReady: player.isReady
+      });
+    } catch (error) {
+      console.error('Error toggling ready:', error);
+    }
+  });
+
+  // Leave room
+  socket.on('leave-room', async ({ roomId }) => {
+    try {
+      const playerData = playerSockets.get(socket.id);
+      if (!playerData) return;
+
+      const player = await Player.findById(playerData.playerId);
+      if (!player) return;
+
+      // Xóa player khỏi phòng
+      await GameRoom.findByIdAndUpdate(roomId, {
+        $pull: { players: player._id }
+      });
+
+      // Xóa player
+      await Player.findByIdAndDelete(player._id);
+
+      // Thông báo cho người khác
+      socket.to(roomId.toString()).emit('player-left', {
+        playerId: player._id,
+        playerName: player.playerName
+      });
+
+      // Leave socket room
+      socket.leave(roomId.toString());
+      playerSockets.delete(socket.id);
+
+      socket.emit('room-left');
+    } catch (error) {
+      console.error('Error leaving room:', error);
+    }
+  });
+
+  // Disconnect
+  socket.on('disconnect', async () => {
+    console.log(`[${new Date().toISOString()}] Client disconnected: ${socket.id}`);
+    
+    try {
+      const playerData = playerSockets.get(socket.id);
+      if (playerData) {
+        const player = await Player.findById(playerData.playerId);
+        if (player) {
+          player.isOnline = false;
+          player.lastSeen = new Date();
+          await player.save();
+
+          // Thông báo cho phòng
+          if (player.roomId) {
+            socket.to(player.roomId.toString()).emit('player-offline', {
+              playerId: player._id,
+              playerName: player.playerName
             });
-            elements.wolfSendBtn.addEventListener('click', sendWolfMessage);
-            elements.wolfChatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendWolfMessage();
-            });
-            elements.adminSendBtn.addEventListener('click', sendAdminMessage);
-            elements.adminChatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendAdminMessage();
-            });
-
-            // Zones
-            document.querySelectorAll('.zone-card').forEach(zone => {
-                zone.addEventListener('click', () => {
-                    const zoneId = parseInt(zone.id.replace('zone', ''));
-                    enterZone(zoneId);
-                });
-            });
-
-            // Question
-            elements.submitAnswerBtn.addEventListener('click', submitAnswer);
-            elements.leaveZoneBtn.addEventListener('click', leaveZone);
-
-            // Actions
-            elements.accuseBtn.addEventListener('click', openAccuseModal);
-            elements.voteBtn.addEventListener('click', openVotingModal);
-            elements.requestVoteBtn.addEventListener('click', requestVote);
-            elements.killBtn.addEventListener('click', openKillModal);
-
-            // Vote Request Modal
-            elements.agreeVoteBtn.addEventListener('click', () => agreeToVote(true));
-            elements.disagreeVoteBtn.addEventListener('click', () => agreeToVote(false));
-
-            // Modals
-            elements.confirmVoteBtn.addEventListener('click', confirmVote);
-            elements.cancelVoteBtn.addEventListener('click', closeVotingModal);
-            elements.confirmKillBtn.addEventListener('click', confirmKill);
-            elements.cancelKillBtn.addEventListener('click', closeKillModal);
-            elements.confirmAccuseBtn.addEventListener('click', confirmAccusation);
-            elements.cancelAccuseBtn.addEventListener('click', closeAccuseModal);
+          }
         }
-
-        function checkNameAvailability() {
-            const name = elements.playerNameInput.value.trim();
-            if (gameState.playerNames.has(name)) {
-                elements.nameError.classList.remove('hidden');
-                elements.playerLoginBtn.disabled = true;
-            } else {
-                elements.nameError.classList.add('hidden');
-                elements.playerLoginBtn.disabled = false;
-            }
-        }
-
-        function playerLogin() {
-            const name = elements.playerNameInput.value.trim();
-            
-            if (!name) {
-                alert('Vui lòng nhập tên!');
-                return;
-            }
-
-            // Check if name already exists
-            if (gameState.playerNames.has(name)) {
-                alert('Tên này đã có người sử dụng! Vui lòng chọn tên khác.');
-                return;
-            }
-
-            // Check max players
-            if (Object.keys(gameState.players).length >= GAME_CONFIG.MAX_PLAYERS) {
-                alert(`Đã đạt tối đa ${GAME_CONFIG.MAX_PLAYERS} người chơi!`);
-                return;
-            }
-
-            // Create new player
-            gameState.currentUser = {
-                name: name,
-                role: 'villager', // Default role
-                realRole: 'villager', // Real role (hidden for wolves)
-                isAlive: true,
-                score: 0,
-                currentZone: null,
-                completedQuestions: {1: 0, 2: 0, 3: 0, 4: 0},
-                voteRequested: false,
-                agreedToVote: false,
-                lastKillTime: null
-            };
-
-            // Add to game state
-            gameState.players[name] = gameState.currentUser;
-            gameState.playerNames.add(name);
-
-            // Update UI
-            elements.playerDisplayName.textContent = name;
-            elements.playerRole.textContent = 'DÂN LÀNG';
-            elements.hiddenRole.classList.remove('hidden');
-            
-            showScreen('playerScreen');
-            addMessage(`${name} đã tham gia game!`, 'system');
-            
-            // Update waiting players count
-            updateWaitingPlayersCount();
-            
-            // Show game not started modal if game hasn't started
-            if (!gameState.gameStarted) {
-                showModal('gameNotStartedModal');
-            }
-        }
-
-        function adminLogin() {
-            const name = elements.adminNameInput.value.trim() || 'Admin';
-            const password = elements.adminPasswordInput.value;
-
-            console.log('Admin login attempt:', { name, password });
-
-            // Check password
-            if (password === 'admin123') {
-                gameState.currentUser = { 
-                    name: name,
-                    isAdmin: true 
-                };
-                gameState.isAdmin = true;
-                
-                // Update UI
-                elements.adminName.textContent = name;
-                showScreen('adminScreen');
-                
-                addMessage(`Quản trò ${name} đã đăng nhập!`, 'system');
-                console.log('Admin login successful');
-                
-                // Update game controls based on game state
-                updateAdminControls();
-            } else {
-                alert('Mật khẩu không đúng! Vui lòng nhập "admin123"');
-                console.log('Admin login failed - wrong password');
-            }
-        }
-
-        function logout() {
-            if (gameState.currentUser) {
-                const userName = gameState.currentUser.name;
-                
-                if (!gameState.currentUser.isAdmin) {
-                    // Remove player from game state
-                    delete gameState.players[userName];
-                    gameState.playerNames.delete(userName);
-                    addMessage(`${userName} đã rời game!`, 'system');
-                } else {
-                    addMessage('Quản trò đã đăng xuất!', 'system');
-                }
-                
-                gameState.currentUser = null;
-                gameState.isAdmin = false;
-                showScreen('loginScreen');
-            }
-        }
-
-        function showScreen(screen) {
-            elements.loginScreen.classList.add('hidden');
-            elements.playerScreen.classList.add('hidden');
-            elements.adminScreen.classList.add('hidden');
-            elements[screen].classList.remove('hidden');
-        }
-
-        function showModal(modalId) {
-            // Hide all modals first
-            document.querySelectorAll('.modal-overlay, .fullscreen-modal').forEach(modal => {
-                modal.classList.add('hidden');
-            });
-            
-            // Show requested modal
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.remove('hidden');
-            }
-        }
-
-        function hideModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.add('hidden');
-            }
-        }
-
-        function startGame() {
-            const playerCount = Object.keys(gameState.players).length;
-            
-            if (playerCount < GAME_CONFIG.MIN_PLAYERS_TO_START) {
-                alert(`Cần ít nhất ${GAME_CONFIG.MIN_PLAYERS_TO_START} người chơi để bắt đầu game!`);
-                return;
-            }
-
-            gameState.gameStatus = 'playing';
-            gameState.gameStarted = true;
-            gameState.timeRemaining = GAME_CONFIG.TOTAL_TIME;
-            gameState.gameStartTime = Date.now();
-            
-            // Assign roles
-            const playerNames = Object.keys(gameState.players);
-            const wolfCount = Math.max(1, Math.floor(playerCount / 4)); // ~25% wolves
-            
-            // Shuffle and assign wolves
-            const shuffled = [...playerNames].sort(() => Math.random() - 0.5);
-            const wolves = shuffled.slice(0, wolfCount);
-            
-            wolves.forEach(wolfName => {
-                gameState.players[wolfName].role = 'wolf';
-                gameState.players[wolfName].realRole = 'wolf';
-                gameState.roles[wolfName] = 'wolf';
-            });
-
-            // Assign villagers
-            playerNames.forEach(name => {
-                if (!gameState.roles[name]) {
-                    gameState.players[name].role = 'villager';
-                    gameState.players[name].realRole = 'villager';
-                    gameState.roles[name] = 'villager';
-                }
-            });
-
-            // Start timer
-            startGameTimer();
-
-            // Enable voting button for admin
-            elements.startVotingBtn.disabled = false;
-
-            // Hide game not started modal for all players
-            hideModal('gameNotStartedModal');
-
-            // Send game started message
-            addMessage(`GAME BẮT ĐẦU! Có ${wolfCount} con sói ẩn trong làng.`, 'system');
-            addMessage('Người dân phải hoàn thành 40 câu hỏi trong 13 phút để chiến thắng!', 'system');
-            addMessage('Mỗi người chơi có thể yêu cầu bỏ phiếu. Cần trên 50% đồng ý để bắt đầu.', 'system');
-            
-            // Update UI
-            updateUI();
-        }
-
-        function startGameTimer() {
-            if (gameState.timerInterval) {
-                clearInterval(gameState.timerInterval);
-            }
-
-            gameState.timerInterval = setInterval(() => {
-                if (gameState.gameStatus === 'playing') {
-                    gameState.timeRemaining--;
-                    
-                    // Update timers
-                    const timeStr = formatTime(gameState.timeRemaining);
-                    elements.playerTimer.textContent = timeStr;
-                    elements.adminTimer.textContent = timeStr;
-
-                    // Check game end
-                    if (gameState.timeRemaining <= 0) {
-                        endGame('timeout');
-                    }
-
-                    // Update task timers and progress
-                    updateTaskTimers();
-                    
-                    updateUI();
-                }
-            }, 1000);
-        }
-
-        function updateTaskTimers() {
-            const totalTasks = GAME_CONFIG.QUESTIONS_PER_ZONE * 4;
-            const completedTasks = Object.values(gameState.zoneProgress).reduce((a, b) => a + b, 0);
-            const progress = (completedTasks / totalTasks) * 100;
-            
-            elements.progressFill.style.width = `${progress}%`;
-            elements.progressPercent.textContent = `${Math.round(progress)}%`;
-            elements.adminProgressFill.style.width = `${progress}%`;
-            elements.adminProgressPercent.textContent = `${Math.round(progress)}%`;
-            
-            // Update zone progress displays
-            for (let i = 1; i <= 4; i++) {
-                document.getElementById(`zone${i}Completed`).textContent = gameState.zoneProgress[i];
-                document.getElementById(`adminZone${i}Progress`).textContent = `${gameState.zoneProgress[i]}/${GAME_CONFIG.QUESTIONS_PER_ZONE}`;
-                
-                const zoneProgress = (gameState.zoneProgress[i] / GAME_CONFIG.QUESTIONS_PER_ZONE) * 100;
-                document.getElementById(`zone${i}Progress`).style.width = `${zoneProgress}%`;
-            }
-        }
-
-        function updateWaitingPlayersCount() {
-            const waitingCount = Object.keys(gameState.players).length;
-            elements.waitingPlayersCount.textContent = waitingCount;
-        }
-
-        function enterZone(zone) {
-            if (!gameState.currentUser || gameState.currentUser.isAdmin) return;
-            
-            if (!gameState.gameStarted) {
-                alert('Game chưa bắt đầu! Vui lòng chờ quản trò.');
-                return;
-            }
-            
-            if (!gameState.currentUser.isAlive) {
-                alert('Bạn đã bị loại và không thể tham gia nhiệm vụ!');
-                return;
-            }
-            
-            if (gameState.currentZone) {
-                alert('Bạn đang ở khu khác!');
-                return;
-            }
-
-            const zoneCount = gameState.zoneMembers[zone].length;
-            if (zoneCount >= GAME_CONFIG.ZONE_CAPACITY) {
-                alert(`Khu ${zone} đã đầy (${GAME_CONFIG.ZONE_CAPACITY}/${GAME_CONFIG.ZONE_CAPACITY} người)!`);
-                return;
-            }
-
-            gameState.currentZone = zone;
-            gameState.currentUser.currentZone = zone;
-            gameState.zoneMembers[zone].push(gameState.currentUser.name);
-            gameState.playerZones[gameState.currentUser.name] = zone;
-            
-            // Show question panel
-            elements.questionPanel.classList.remove('hidden');
-            elements.zoneMembersPanel.classList.remove('hidden');
-            
-            // Load appropriate question
-            gameState.currentQuestion = gameState.currentUser.completedQuestions[zone] || 0;
-            loadQuestion(zone, gameState.currentQuestion);
-            
-            updateZoneDisplay();
-            addMessage(`${gameState.currentUser.name} đã vào Khu ${zone}`, 'system');
-        }
-
-        function loadQuestion(zone, questionIndex) {
-            const questions = ZONE_QUESTIONS[zone];
-            if (questionIndex >= questions.length) {
-                // All questions completed for this zone
-                completeZone(zone);
-                return;
-            }
-
-            const question = questions[questionIndex];
-            elements.zoneTitle.textContent = `Khu ${zone} - Câu ${questionIndex + 1}/${GAME_CONFIG.QUESTIONS_PER_ZONE}`;
-            elements.questionContent.textContent = question.question;
-            
-            // Clear previous options
-            elements.questionOptions.innerHTML = '';
-            
-            // Add new options
-            question.options.forEach((option, index) => {
-                const button = document.createElement('button');
-                button.className = 'question-option w-full p-3 rounded-lg text-left';
-                button.innerHTML = `
-                    <span class="font-semibold">${String.fromCharCode(65 + index)}.</span> ${option}
-                `;
-                button.addEventListener('click', () => {
-                    // Deselect all
-                    elements.questionOptions.querySelectorAll('.question-option').forEach(btn => {
-                        btn.classList.remove('selected');
-                    });
-                    // Select this one
-                    button.classList.add('selected');
-                    elements.submitAnswerBtn.disabled = false;
-                });
-                elements.questionOptions.appendChild(button);
-            });
-            
-            elements.submitAnswerBtn.disabled = true;
-        }
-
-        function submitAnswer() {
-            const selected = elements.questionOptions.querySelector('.selected');
-            if (!selected) {
-                alert('Vui lòng chọn đáp án!');
-                return;
-            }
-
-            const zone = gameState.currentZone;
-            const questionIndex = gameState.currentQuestion;
-            const questions = ZONE_QUESTIONS[zone];
-            const question = questions[questionIndex];
-            
-            const selectedText = selected.textContent.replace(/^[A-Z]\.\s/, '');
-            const isCorrect = selectedText === question.correct;
-
-            if (isCorrect) {
-                gameState.currentUser.completedQuestions[zone]++;
-                gameState.zoneProgress[zone]++;
-                gameState.currentUser.score += 10;
-                
-                // Move to next question
-                gameState.currentQuestion++;
-                
-                if (gameState.currentQuestion < GAME_CONFIG.QUESTIONS_PER_ZONE) {
-                    loadQuestion(zone, gameState.currentQuestion);
-                    addMessage(`${gameState.currentUser.name} trả lời đúng câu ${questionIndex + 1} ở Khu ${zone}!`, 'system');
-                } else {
-                    completeZone(zone);
-                }
-            } else {
-                alert('Sai rồi! Hãy thử lại.');
-            }
-
-            updateUI();
-        }
-
-        function completeZone(zone) {
-            gameState.completedTasks.add(`${zone}_${gameState.currentUser.name}`);
-            gameState.currentUser.currentZone = null;
-            gameState.zoneMembers[zone] = gameState.zoneMembers[zone].filter(name => name !== gameState.currentUser.name);
-            
-            elements.questionPanel.classList.add('hidden');
-            elements.zoneMembersPanel.classList.add('hidden');
-            gameState.currentZone = null;
-            
-            addMessage(`${gameState.currentUser.name} đã hoàn thành Khu ${zone}!`, 'system');
-            
-            // Check if all tasks completed
-            checkGameProgress();
-        }
-
-        function leaveZone() {
-            if (!gameState.currentZone) return;
-            
-            const zone = gameState.currentZone;
-            gameState.zoneMembers[zone] = gameState.zoneMembers[zone].filter(name => name !== gameState.currentUser.name);
-            gameState.currentUser.currentZone = null;
-            gameState.currentZone = null;
-            
-            elements.questionPanel.classList.add('hidden');
-            elements.zoneMembersPanel.classList.add('hidden');
-            
-            addMessage(`${gameState.currentUser.name} đã rời Khu ${zone}`, 'system');
-            updateZoneDisplay();
-        }
-
-        function updateZoneDisplay() {
-            // Update zone member counts
-            for (let i = 1; i <= 4; i++) {
-                const count = gameState.zoneMembers[i].length;
-                document.getElementById(`zone${i}Count`).textContent = count;
-            }
-
-            // Update zone members list
-            if (gameState.currentZone) {
-                elements.zoneMembers.innerHTML = '';
-                gameState.zoneMembers[gameState.currentZone].forEach(name => {
-                    const player = gameState.players[name];
-                    const div = document.createElement('div');
-                    div.className = 'p-2 bg-white/5 rounded text-xs';
-                    div.textContent = `${name} ${player.role === 'wolf' ? '🐺' : '👤'}`;
-                    elements.zoneMembers.appendChild(div);
-                });
-            }
-        }
-
-        function checkGameProgress() {
-            const totalTasks = GAME_CONFIG.QUESTIONS_PER_ZONE * 4;
-            const completedTasks = Object.values(gameState.zoneProgress).reduce((a, b) => a + b, 0);
-            
-            if (completedTasks >= totalTasks) {
-                endGame('villagers_win');
-            }
-        }
-
-        function openAccuseModal() {
-            if (!gameState.currentUser || gameState.currentUser.isAdmin || !gameState.currentUser.isAlive) return;
-            
-            if (!gameState.gameStarted) {
-                alert('Game chưa bắt đầu!');
-                return;
-            }
-            
-            // Get alive players (excluding self)
-            const alivePlayers = Object.values(gameState.players)
-                .filter(p => p.isAlive && p.name !== gameState.currentUser.name);
-            
-            if (alivePlayers.length === 0) {
-                alert('Không có ai để tố cáo!');
-                return;
-            }
-            
-            const optionsDiv = document.getElementById('accuseOptions');
-            optionsDiv.innerHTML = '';
-            
-            alivePlayers.forEach(player => {
-                const button = document.createElement('button');
-                button.className = 'vote-option w-full p-3 text-left';
-                button.innerHTML = `
-                    <div class="font-semibold">${player.name}</div>
-                    <div class="text-xs opacity-70">Đang ở: ${player.currentZone ? `Khu ${player.currentZone}` : 'Không trong khu'}</div>
-                `;
-                button.addEventListener('click', () => {
-                    optionsDiv.querySelectorAll('.vote-option').forEach(btn => {
-                        btn.classList.remove('selected');
-                    });
-                    button.classList.add('selected');
-                    elements.confirmAccuseBtn.disabled = false;
-                });
-                optionsDiv.appendChild(button);
-            });
-            
-            showModal('accuseModal');
-            elements.confirmAccuseBtn.disabled = true;
-        }
-
-        function confirmAccusation() {
-            const selected = document.querySelector('#accuseOptions .selected');
-            if (!selected) return;
-            
-            const accusedName = selected.querySelector('.font-semibold').textContent;
-            
-            // Record accusation
-            gameState.accusationTargets[gameState.currentUser.name] = accusedName;
-            
-            // This also counts as a vote request
-            requestVote();
-            
-            addMessage(`${gameState.currentUser.name} tố cáo ${accusedName} là sói!`, 'accusation');
-            closeAccuseModal();
-        }
-
-        function closeAccuseModal() {
-            hideModal('accuseModal');
-        }
-
-        function requestVote() {
-            if (!gameState.currentUser || gameState.currentUser.isAdmin || !gameState.currentUser.isAlive) return;
-            
-            if (!gameState.gameStarted) {
-                alert('Game chưa bắt đầu!');
-                return;
-            }
-            
-            if (gameState.currentUser.voteRequested) {
-                alert('Bạn đã yêu cầu bỏ phiếu rồi!');
-                return;
-            }
-            
-            // Set as vote requester
-            gameState.voteRequester = gameState.currentUser.name;
-            gameState.currentUser.voteRequested = true;
-            gameState.voteRequests.add(gameState.currentUser.name);
-            
-            // Reset vote agrees
-            gameState.voteAgrees.clear();
-            
-            // Show vote request modal to all players
-            showVoteRequestModal();
-            
-            addMessage(`${gameState.currentUser.name} đã yêu cầu bỏ phiếu!`, 'system');
-        }
-
-        function showVoteRequestModal() {
-            // Update modal content
-            elements.requesterName.textContent = gameState.voteRequester;
-            
-            const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive).length;
-            elements.totalPlayersCount.textContent = alivePlayers;
-            elements.agreeCount.textContent = '0';
-            
-            // Start 60-second timer for vote request
-            let timeLeft = 60;
-            elements.voteRequestTimer.textContent = timeLeft;
-            
-            const voteRequestTimer = setInterval(() => {
-                timeLeft--;
-                elements.voteRequestTimer.textContent = timeLeft;
-                
-                // Update agree count
-                elements.agreeCount.textContent = gameState.voteAgrees.size;
-                
-                // Check if enough agrees
-                const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive).length;
-                const requiredAgrees = Math.ceil(alivePlayers / 2);
-                
-                if (gameState.voteAgrees.size >= requiredAgrees) {
-                    clearInterval(voteRequestTimer);
-                    startDiscussionPhase();
-                }
-                
-                if (timeLeft <= 0) {
-                    clearInterval(voteRequestTimer);
-                    hideModal('voteRequestModal');
-                    addMessage('Yêu cầu bỏ phiếu đã hết thời gian!', 'system');
-                }
-            }, 1000);
-            
-            // Show modal to all players
-            showModal('voteRequestModal');
-        }
-
-        function agreeToVote(agree) {
-            if (!gameState.currentUser || gameState.currentUser.isAdmin) return;
-            
-            if (agree) {
-                gameState.voteAgrees.add(gameState.currentUser.name);
-                gameState.currentUser.agreedToVote = true;
-                addMessage(`${gameState.currentUser.name} đồng ý bỏ phiếu!`, 'system');
-            } else {
-                gameState.currentUser.agreedToVote = false;
-            }
-            
-            // Update UI
-            updateVoteRequestDisplay();
-        }
-
-        function startDiscussionPhase() {
-            hideModal('voteRequestModal');
-            
-            gameState.gameStatus = 'discussion';
-            gameState.discussionTime = GAME_CONFIG.DISCUSSION_TIME;
-            
-            // Show discussion modal
-            elements.discussionTimer.textContent = gameState.discussionTime;
-            showModal('discussionModal');
-            
-            addMessage('Bắt đầu 1 phút thảo luận trước khi bỏ phiếu!', 'system');
-            
-            // Start discussion timer
-            gameState.discussionTimer = setInterval(() => {
-                gameState.discussionTime--;
-                elements.discussionTimer.textContent = gameState.discussionTime;
-                
-                if (gameState.discussionTime <= 0) {
-                    clearInterval(gameState.discussionTimer);
-                    startVotingSession();
-                }
-            }, 1000);
-        }
-
-        function startVotingSession() {
-            if (gameState.isVoting) return;
-            
-            clearInterval(gameState.discussionTimer);
-            hideModal('discussionModal');
-            
-            gameState.isVoting = true;
-            gameState.gameStatus = 'voting';
-            gameState.votes = {};
-            gameState.votingTime = GAME_CONFIG.VOTING_TIME;
-            gameState.chatEnabled = false; // Disable chat during voting
-            
-            elements.gameStatusPanel.classList.remove('hidden');
-            elements.statusTitle.textContent = '⏳ ĐANG BỎ PHIẾU';
-            elements.votingCountdown.textContent = formatTime(gameState.votingTime);
-            
-            // Start voting timer
-            startVotingTimer();
-            
-            addMessage('Vòng bỏ phiếu đã bắt đầu! Mọi người có 3 phút để bỏ phiếu.', 'system');
-            addMessage('Chat đã bị tạm khóa trong thời gian bỏ phiếu.', 'system');
-        }
-
-        function startVotingTimer() {
-            if (gameState.votingTimer) {
-                clearInterval(gameState.votingTimer);
-            }
-            
-            gameState.votingTimer = setInterval(() => {
-                gameState.votingTime--;
-                elements.votingCountdown.textContent = formatTime(gameState.votingTime);
-                
-                if (gameState.votingTime <= 0) {
-                    endVoting();
-                }
-            }, 1000);
-        }
-
-        function openVotingModal() {
-            if (!gameState.isVoting) {
-                alert('Chưa có vòng bỏ phiếu!');
-                return;
-            }
-            
-            if (!gameState.currentUser || gameState.currentUser.isAdmin || !gameState.currentUser.isAlive) return;
-            
-            const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive);
-            const optionsDiv = document.getElementById('votingOptions');
-            optionsDiv.innerHTML = '';
-            
-            alivePlayers.forEach(player => {
-                if (player.name === gameState.currentUser.name) return; // Can't vote for self
-                
-                const button = document.createElement('button');
-                button.className = 'vote-option w-full';
-                button.innerHTML = `
-                    <div class="font-semibold">${player.name}</div>
-                    <div class="text-xs opacity-70">${player.role === 'wolf' ? '🐺' : '👤'}</div>
-                `;
-                button.addEventListener('click', () => {
-                    optionsDiv.querySelectorAll('.vote-option').forEach(btn => {
-                        btn.classList.remove('selected');
-                    });
-                    button.classList.add('selected');
-                    elements.confirmVoteBtn.disabled = false;
-                });
-                optionsDiv.appendChild(button);
-            });
-            
-            showModal('votingModal');
-            document.getElementById('votingTimer').textContent = gameState.votingTime;
-            elements.confirmVoteBtn.disabled = true;
-        }
-
-        function confirmVote() {
-            const selected = document.querySelector('#votingOptions .selected');
-            if (!selected) return;
-            
-            const playerName = selected.querySelector('.font-semibold').textContent;
-            gameState.votes[gameState.currentUser.name] = playerName;
-            
-            addMessage(`${gameState.currentUser.name} đã bỏ phiếu!`, 'system');
-            closeVotingModal();
-            
-            // Check if all alive players have voted
-            const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive);
-            const votedPlayers = Object.keys(gameState.votes);
-            
-            if (votedPlayers.length === alivePlayers.length) {
-                endVoting();
-            }
-        }
-
-        function endVoting() {
-            if (gameState.votingTimer) {
-                clearInterval(gameState.votingTimer);
-                gameState.votingTimer = null;
-            }
-            
-            gameState.isVoting = false;
-            gameState.gameStatus = 'playing';
-            gameState.chatEnabled = true; // Re-enable chat
-            elements.gameStatusPanel.classList.add('hidden');
-            
-            // Count votes
-            const voteCount = {};
-            Object.values(gameState.votes).forEach(target => {
-                voteCount[target] = (voteCount[target] || 0) + 1;
-            });
-            
-            // Find player with most votes
-            let maxVotes = 0;
-            let eliminatedPlayer = null;
-            Object.entries(voteCount).forEach(([player, votes]) => {
-                if (votes > maxVotes) {
-                    maxVotes = votes;
-                    eliminatedPlayer = player;
-                }
-            });
-            
-            if (eliminatedPlayer) {
-                eliminatePlayer(eliminatedPlayer, 'voting');
-            }
-            
-            // Reset vote requests
-            gameState.voteRequests.clear();
-            gameState.voteAgrees.clear();
-            gameState.votes = {};
-            gameState.voteRequester = null;
-            
-            // Reset player vote states
-            Object.values(gameState.players).forEach(player => {
-                player.voteRequested = false;
-                player.agreedToVote = false;
-            });
-            
-            addMessage('Vòng bỏ phiếu đã kết thúc!', 'system');
-        }
-
-        function closeVotingModal() {
-            hideModal('votingModal');
-        }
-
-        function openKillModal() {
-            if (!gameState.currentUser || gameState.currentUser.role !== 'wolf') {
-                alert('Chỉ sói mới có thể loại người!');
-                return;
-            }
-            
-            if (!gameState.gameStarted) {
-                alert('Game chưa bắt đầu!');
-                return;
-            }
-            
-            // Check cooldown
-            if (gameState.currentUser.lastKillTime) {
-                const timeSinceLastKill = Date.now() - gameState.currentUser.lastKillTime;
-                if (timeSinceLastKill < GAME_CONFIG.WOLF_KILL_COOLDOWN * 1000) {
-                    const remaining = Math.ceil((GAME_CONFIG.WOLF_KILL_COOLDOWN * 1000 - timeSinceLastKill) / 1000);
-                    alert(`Phải chờ ${remaining} giây nữa mới được giết tiếp!`);
-                    return;
-                }
-            }
-            
-            // Get players in same zone
-            const zone = gameState.currentZone || gameState.currentUser.currentZone;
-            if (!zone) {
-                alert('Bạn phải ở trong khu để giết người!');
-                return;
-            }
-            
-            const potentialVictims = gameState.zoneMembers[zone].filter(name => 
-                name !== gameState.currentUser.name && 
-                gameState.players[name].isAlive
-            );
-            
-            if (potentialVictims.length === 0) {
-                alert('Không có ai trong khu để giết!');
-                return;
-            }
-            
-            const optionsDiv = document.getElementById('killOptions');
-            optionsDiv.innerHTML = '';
-            
-            potentialVictims.forEach(name => {
-                const button = document.createElement('button');
-                button.className = 'kill-option w-full';
-                button.innerHTML = `
-                    <div class="font-semibold">${name}</div>
-                    <div class="text-xs opacity-70">Đang ở Khu ${zone}</div>
-                `;
-                button.addEventListener('click', () => {
-                    optionsDiv.querySelectorAll('.kill-option').forEach(btn => {
-                        btn.classList.remove('selected');
-                    });
-                    button.classList.add('selected');
-                    elements.confirmKillBtn.disabled = false;
-                });
-                optionsDiv.appendChild(button);
-            });
-            
-            showModal('killModal');
-            elements.confirmKillBtn.disabled = true;
-        }
-
-        function confirmKill() {
-            const selected = document.querySelector('#killOptions .selected');
-            if (!selected) return;
-            
-            const victimName = selected.querySelector('.font-semibold').textContent;
-            const zone = gameState.currentZone || gameState.currentUser.currentZone;
-            
-            // Record kill
-            gameState.currentUser.lastKillTime = Date.now();
-            gameState.lastKillTime = Date.now();
-            
-            // Eliminate player
-            eliminatePlayer(victimName, 'wolf', zone);
-            
-            closeKillModal();
-            updateKillCooldown();
-        }
-
-        function closeKillModal() {
-            hideModal('killModal');
-        }
-
-        function eliminatePlayer(playerName, method, zone = null) {
-            const player = gameState.players[playerName];
-            if (!player || !player.isAlive) return;
-            
-            player.isAlive = false;
-            
-            // Record elimination details
-            const eliminationZone = zone || player.currentZone || 'Không xác định';
-            const teammates = zone ? gameState.zoneMembers[zone].filter(name => name !== playerName) : [];
-            
-            const eliminationRecord = {
-                name: playerName,
-                zone: eliminationZone,
-                teammates: teammates,
-                method: method,
-                time: new Date().toISOString(),
-                realRole: player.realRole
-            };
-            
-            gameState.eliminatedPlayers.push(eliminationRecord);
-            
-            // Remove from zone
-            if (player.currentZone) {
-                gameState.zoneMembers[player.currentZone] = gameState.zoneMembers[player.currentZone].filter(name => name !== playerName);
-            }
-            
-            // Add to eliminated list
-            updateEliminatedList();
-            
-            // Send message
-            if (method === 'wolf') {
-                addMessage(`💀 ${playerName} đã bị sói cắn chết tại Khu ${eliminationZone}!`, 'elimination');
-                // Start voting session after wolf kill
-                requestVote();
-            } else if (method === 'voting') {
-                addMessage(`💀 ${playerName} đã bị bỏ phiếu treo cổ! (Thực chất là: ${player.realRole === 'wolf' ? 'SÓI' : 'DÂN LÀNG'})`, 'elimination');
-            }
-            
-            // Check win conditions
-            checkWinConditions();
-            
-            updateUI();
-        }
-
-        function updateEliminatedList() {
-            // Player screen
-            elements.eliminatedList.innerHTML = '';
-            if (gameState.eliminatedPlayers.length === 0) {
-                elements.eliminatedList.innerHTML = '<div class="text-xs text-red-200/50 text-center py-4">Chưa ai bị loại</div>';
-            } else {
-                gameState.eliminatedPlayers.forEach(elim => {
-                    const div = document.createElement('div');
-                    div.className = 'eliminated-card';
-                    div.innerHTML = `
-                        <div class="font-semibold text-red-300 mb-1">💀 ${elim.name}</div>
-                        <div class="text-xs text-red-200/70 mb-1">
-                            <span class="zone-indicator zone-${elim.zone}">📍 Khu ${elim.zone}</span>
-                        </div>
-                        <div class="text-xs text-red-200/60">
-                            <span class="font-semibold">👥 Cùng khu:</span> ${elim.teammates.length > 0 ? elim.teammates.join(', ') : 'Không ai'}
-                        </div>
-                    `;
-                    elements.eliminatedList.appendChild(div);
-                });
-            }
-            
-            // Admin screen
-            elements.adminEliminatedList.innerHTML = '';
-            if (gameState.eliminatedPlayers.length === 0) {
-                elements.adminEliminatedList.innerHTML = '<div class="text-center text-red-200/50 py-4 text-sm">Chưa ai bị loại</div>';
-            } else {
-                gameState.eliminatedPlayers.forEach(elim => {
-                    const div = document.createElement('div');
-                    div.className = 'eliminated-card';
-                    div.innerHTML = `
-                        <div class="font-semibold text-red-300 mb-1">💀 ${elim.name} (${elim.realRole === 'wolf' ? '🐺 SÓI' : '👤 DÂN'})</div>
-                        <div class="text-xs text-red-200/70 mb-1">
-                            <span class="zone-indicator zone-${elim.zone}">📍 Khu ${elim.zone}</span>
-                            <span class="ml-2">(${elim.method === 'wolf' ? 'Bị sói cắn' : 'Bị bỏ phiếu'})</span>
-                        </div>
-                        <div class="text-xs text-red-200/60">
-                            <span class="font-semibold">👥 Cùng khu:</span> ${elim.teammates.length > 0 ? elim.teammates.join(', ') : 'Không ai'}
-                        </div>
-                    `;
-                    elements.adminEliminatedList.appendChild(div);
-                });
-            }
-        }
-
-        function updateKillCooldown() {
-            if (!gameState.currentUser || !gameState.currentUser.lastKillTime) return;
-            
-            const remaining = Math.ceil((GAME_CONFIG.WOLF_KILL_COOLDOWN * 1000 - (Date.now() - gameState.currentUser.lastKillTime)) / 1000);
-            if (remaining > 0) {
-                elements.killCooldown.textContent = remaining;
-                elements.killBtn.disabled = true;
-            } else {
-                elements.killCooldown.textContent = '0';
-                elements.killBtn.disabled = false;
-            }
-        }
-
-        function checkWinConditions() {
-            const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive);
-            const wolves = alivePlayers.filter(p => p.realRole === 'wolf');
-            const villagers = alivePlayers.filter(p => p.realRole === 'villager');
-            
-            // Wolves win if they outnumber or equal villagers
-            if (wolves.length >= villagers.length) {
-                endGame('wolves_win');
-                return;
-            }
-            
-            // No wolves left
-            if (wolves.length === 0) {
-                endGame('villagers_win');
-                return;
-            }
-            
-            // Check if all tasks completed
-            const totalTasks = GAME_CONFIG.QUESTIONS_PER_ZONE * 4;
-            const completedTasks = Object.values(gameState.zoneProgress).reduce((a, b) => a + b, 0);
-            if (completedTasks >= totalTasks) {
-                endGame('villagers_win');
-            }
-        }
-
-        function endGame(reason) {
-            clearInterval(gameState.timerInterval);
-            if (gameState.votingTimer) {
-                clearInterval(gameState.votingTimer);
-            }
-            if (gameState.discussionTimer) {
-                clearInterval(gameState.discussionTimer);
-            }
-            
-            gameState.gameStatus = 'ended';
-            gameState.gameStarted = false;
-            
-            let message = '';
-            let title = '';
-            switch (reason) {
-                case 'wolves_win':
-                    message = '🐺 SÓI CHIẾN THẮNG! 🐺';
-                    title = 'SÓI THẮNG';
-                    break;
-                case 'villagers_win':
-                    message = '🎉 DÂN LÀNG CHIẾN THẮNG! 🎉';
-                    title = 'DÂN LÀNG THẮNG';
-                    break;
-                case 'timeout':
-                    message = '⏰ HẾT GIỜ! SÓI CHIẾN THẮNG!';
-                    title = 'HẾT GIỜ - SÓI THẮNG';
-                    break;
-            }
-            
-            // Show end game modal
-            showEndGameModal(title, message);
-            
-            // Reveal all roles
-            addMessage(`GAME KẾT THÚC! ${message}`, 'system');
-            Object.entries(gameState.players).forEach(([name, player]) => {
-                addMessage(`${name}: ${player.realRole === 'wolf' ? '🐺 SÓI' : '👤 DÂN LÀNG'}`, 'system');
-            });
-        }
-
-        function showEndGameModal(title, message) {
-            const modal = document.createElement('div');
-            modal.className = 'fullscreen-modal';
-            modal.innerHTML = `
-                <div class="modal-content text-center">
-                    <div class="text-6xl mb-6">${title.includes('SÓI') ? '🐺' : '🎉'}</div>
-                    <h2 class="font-display text-4xl font-bold mb-4 ${title.includes('SÓI') ? 'text-red-400' : 'text-green-400'}">${title}</h2>
-                    <p class="text-2xl mb-6">${message}</p>
-                    <div class="mb-6">
-                        <h3 class="text-xl font-bold mb-2">📊 THỐNG KÊ</h3>
-                        <div class="text-sm space-y-1">
-                            <div>Số người chơi: ${Object.keys(gameState.players).length}</div>
-                            <div>Số sói: ${Object.values(gameState.players).filter(p => p.realRole === 'wolf').length}</div>
-                            <div>Nhiệm vụ hoàn thành: ${Object.values(gameState.zoneProgress).reduce((a, b) => a + b, 0)}/40</div>
-                        </div>
-                    </div>
-                    <button id="restartGameBtn" class="py-3 px-6 rounded-xl btn-primary font-semibold text-lg">
-                        🔄 CHƠI LẠI
-                    </button>
-                </div>
-            `;
-            
-            document.getElementById('app').appendChild(modal);
-            
-            document.getElementById('restartGameBtn').addEventListener('click', () => {
-                location.reload();
-            });
-        }
-
-        function togglePause() {
-            if (gameState.gameStatus === 'playing') {
-                gameState.gameStatus = 'paused';
-                clearInterval(gameState.timerInterval);
-                elements.pauseGameBtn.textContent = '▶️ TIẾP TỤC';
-                addMessage('Game đã tạm dừng!', 'system');
-            } else if (gameState.gameStatus === 'paused') {
-                gameState.gameStatus = 'playing';
-                startGameTimer();
-                elements.pauseGameBtn.textContent = '⏸️ TẠM DỪNG';
-                addMessage('Game tiếp tục!', 'system');
-            }
-        }
-
-        function sendMessage() {
-            if (!gameState.chatEnabled) {
-                alert('Chat đang bị khóa trong thời gian bỏ phiếu!');
-                return;
-            }
-            
-            const message = elements.playerChatInput.value.trim();
-            if (!message || !gameState.currentUser) return;
-            
-            addMessage(`${gameState.currentUser.name}: ${message}`, 'player');
-            elements.playerChatInput.value = '';
-        }
-
-        function sendWolfMessage() {
-            const message = elements.wolfChatInput.value.trim();
-            if (!message || !gameState.currentUser || gameState.currentUser.role !== 'wolf') return;
-            
-            addMessage(`${gameState.currentUser.name}: ${message}`, 'wolf');
-            elements.wolfChatInput.value = '';
-        }
-
-        function sendAdminMessage() {
-            const message = elements.adminChatInput.value.trim();
-            if (!message) return;
-            
-            addMessage(`[QUẢN TRÒ]: ${message}`, 'admin');
-            elements.adminChatInput.value = '';
-        }
-
-        function addMessage(text, type) {
-            const message = {
-                text,
-                type,
-                timestamp: new Date().toISOString(),
-                sender: type === 'player' ? gameState.currentUser.name : 
-                       type === 'wolf' ? gameState.currentUser.name :
-                       type === 'admin' ? 'QUẢN TRÒ' : 'HỆ THỐNG'
-            };
-            
-            gameState.messages.push(message);
-            
-            // Update chat displays
-            updateChatDisplay();
-            
-            // If wolf chat, also update wolf chat area
-            if (type === 'wolf') {
-                gameState.wolfMessages.push(message);
-                updateWolfChatDisplay();
-            }
-        }
-
-        function updateChatDisplay() {
-            // Player chat
-            elements.playerChatArea.innerHTML = '';
-            gameState.messages.forEach(msg => {
-                if (msg.type !== 'wolf') { // Don't show wolf chat in main chat
-                    const div = document.createElement('div');
-                    div.className = `p-3 rounded-lg mb-2 ${msg.type === 'system' ? 'bg-yellow-500/20' : msg.type === 'accusation' ? 'bg-red-500/20' : msg.type === 'elimination' ? 'bg-red-900/20' : 'bg-white/5'}`;
-                    div.innerHTML = `
-                        <div class="text-xs opacity-70">${formatTimeForChat(msg.timestamp)}</div>
-                        <div><span class="font-semibold ${msg.type === 'system' ? 'text-yellow-400' : msg.type === 'admin' ? 'text-purple-400' : 'text-blue-400'}">${msg.sender}:</span> ${msg.text}</div>
-                    `;
-                    elements.playerChatArea.appendChild(div);
-                }
-            });
-            elements.playerChatArea.scrollTop = elements.playerChatArea.scrollHeight;
-            
-            // Admin chat
-            elements.adminChatArea.innerHTML = '';
-            gameState.messages.forEach(msg => {
-                const div = document.createElement('div');
-                div.className = `p-2 rounded mb-1 ${msg.type === 'wolf' ? 'bg-red-900/20' : msg.type === 'system' ? 'bg-yellow-500/20' : 'bg-white/5'} text-xs`;
-                div.innerHTML = `
-                    <div class="opacity-70">${formatTimeForChat(msg.timestamp)}</div>
-                    <div><span class="font-semibold ${msg.type === 'wolf' ? 'text-red-400' : msg.type === 'system' ? 'text-yellow-400' : msg.type === 'admin' ? 'text-purple-400' : 'text-blue-400'}">${msg.sender}:</span> ${msg.text}</div>
-                `;
-                elements.adminChatArea.appendChild(div);
-            });
-            elements.adminChatArea.scrollTop = elements.adminChatArea.scrollHeight;
-        }
-
-        function updateWolfChatDisplay() {
-            elements.wolfChatArea.innerHTML = '';
-            gameState.wolfMessages.forEach(msg => {
-                const div = document.createElement('div');
-                div.className = 'p-2 rounded mb-1 bg-red-900/20 text-xs';
-                div.innerHTML = `
-                    <div class="opacity-70">${formatTimeForChat(msg.timestamp)}</div>
-                    <div><span class="font-semibold text-red-400">${msg.sender}:</span> ${msg.text}</div>
-                `;
-                elements.wolfChatArea.appendChild(div);
-            });
-            elements.wolfChatArea.scrollTop = elements.wolfChatArea.scrollHeight;
-        }
-
-        function updatePlayerList() {
-            // Admin player list
-            elements.adminPlayerList.innerHTML = '';
-            elements.playerCount.textContent = Object.keys(gameState.players).length;
-            
-            if (Object.keys(gameState.players).length === 0) {
-                elements.adminPlayerList.innerHTML = '<div class="text-center text-red-200/50 py-4">Chưa có người chơi</div>';
-            } else {
-                Object.entries(gameState.players).forEach(([name, player]) => {
-                    const div = document.createElement('div');
-                    div.className = 'p-2 rounded mb-1 bg-white/5 flex justify-between items-center';
-                    div.innerHTML = `
-                        <div>
-                            <span class="font-semibold">${name}</span>
-                            <span class="text-xs ml-2 ${player.realRole === 'wolf' ? 'text-red-400' : 'text-green-400'}">
-                                ${player.realRole === 'wolf' ? '🐺' : '👤'} ${!player.isAlive ? '(💀)' : ''}
-                            </span>
-                        </div>
-                        <div class="text-xs">
-                            ${player.isAlive ? '🟢' : '💀'}
-                            <span class="ml-2">${player.score} điểm</span>
-                        </div>
-                    `;
-                    elements.adminPlayerList.appendChild(div);
-                });
-            }
-            
-            // Update alive count
-            const aliveCount = Object.values(gameState.players).filter(p => p.isAlive).length;
-            const totalCount = Object.keys(gameState.players).length;
-            
-            elements.playerAlive.textContent = `${aliveCount}/${totalCount}`;
-            elements.aliveCount.textContent = aliveCount;
-            elements.totalPlayers.textContent = totalCount;
-        }
-
-        function updateVoteRequestDisplay() {
-            const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive).length;
-            const requiredVotes = Math.ceil(alivePlayers / 2);
-            
-            elements.voteRequestsCount.textContent = gameState.voteRequests.size;
-            elements.requiredVotes.textContent = requiredVotes;
-            
-            // Update vote request list
-            elements.voteRequestList.innerHTML = '';
-            gameState.voteRequests.forEach(playerName => {
-                const div = document.createElement('div');
-                div.className = 'text-xs py-1 border-b border-white/10';
-                div.textContent = `• ${playerName}`;
-                elements.voteRequestList.appendChild(div);
-            });
-        }
-
-        function updateUI() {
-            // Update player role display
-            if (gameState.currentUser && !gameState.currentUser.isAdmin) {
-                const player = gameState.players[gameState.currentUser.name];
-                if (player) {
-                    if (player.role === 'wolf') {
-                        elements.playerRole.textContent = 'DÂN LÀNG';
-                        elements.hiddenRole.textContent = 'SÓI';
-                        elements.hiddenRole.className = 'role-badge role-wolf ml-2';
-                        elements.wolfChatSection.classList.remove('hidden');
-                        elements.wolfKillSection.classList.remove('hidden');
-                        updateKillCooldown();
-                    } else {
-                        elements.playerRole.textContent = 'DÂN LÀNG';
-                        elements.hiddenRole.textContent = 'DÂN LÀNG';
-                        elements.hiddenRole.className = 'role-badge role-villager ml-2';
-                        elements.wolfChatSection.classList.add('hidden');
-                        elements.wolfKillSection.classList.add('hidden');
-                    }
-                    
-                    // Update action buttons based on game state
-                    const canVote = gameState.isVoting && player.isAlive;
-                    elements.voteBtn.disabled = !canVote;
-                    elements.requestVoteBtn.disabled = gameState.isVoting || !player.isAlive || player.voteRequested;
-                    elements.accuseBtn.disabled = !player.isAlive;
-                    
-                    // Update zone buttons based on game state
-                    const canEnterZone = gameState.gameStarted && player.isAlive;
-                    document.querySelectorAll('.zone-card').forEach(zone => {
-                        zone.style.opacity = canEnterZone ? '1' : '0.5';
-                        zone.style.cursor = canEnterZone ? 'pointer' : 'not-allowed';
-                    });
-                }
-            }
-            
-            // Update zone display
-            updateZoneDisplay();
-            
-            // Update player list
-            updatePlayerList();
-            
-            // Update eliminated list
-            updateEliminatedList();
-            
-            // Update vote request display
-            updateVoteRequestDisplay();
-            
-            // Update admin controls
-            updateAdminControls();
-        }
-
-        function updateAdminControls() {
-            if (gameState.isAdmin) {
-                const playerCount = Object.keys(gameState.players).length;
-                elements.startGameBtn.disabled = !gameState.gameStarted ? playerCount < GAME_CONFIG.MIN_PLAYERS_TO_START : true;
-                elements.startVotingBtn.disabled = !gameState.isVoting;
-                
-                // Update voting status panel
-                const alivePlayers = Object.values(gameState.players).filter(p => p.isAlive).length;
-                const requiredVotes = Math.ceil(alivePlayers / 2);
-                
-                if (gameState.voteRequests.size > 0) {
-                    elements.votingStatusPanel.innerHTML = `
-                        <p class="text-sm mb-2">Đang có yêu cầu bỏ phiếu</p>
-                        <div class="text-xs">
-                            <div>Yêu cầu: ${gameState.voteRequests.size}/${requiredVotes}</div>
-                            <div>Đồng ý: ${gameState.voteAgrees.size}/${requiredVotes}</div>
-                            <div id="voteRequestList" class="mt-2 text-left text-xs"></div>
-                        </div>
-                    `;
-                }
-            }
-        }
-
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
-
-        function formatTimeForChat(timestamp) {
-            const date = new Date(timestamp);
-            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
-        }
-
-        // Initialize UI
-        updateUI();
-    </script>
-</body>
-</html>
+      }
+      
+      playerSockets.delete(socket.id);
+    } catch (error) {
+      console.error('Error handling disconnect:', error);
+    }
+  });
+});
+
+// ==================== HELPER FUNCTIONS ====================
+
+function generateRoomCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+function filterMessage(message) {
+  // Simple bad word filter
+  const badWords = ['fuck', 'shit', 'asshole', 'bitch', 'damn'];
+  let filtered = message;
+  badWords.forEach(word => {
+    const regex = new RegExp(word, 'gi');
+    filtered = filtered.replace(regex, '*'.repeat(word.length));
+  });
+  return filtered;
+}
+
+function findSocketByPlayerId(playerId) {
+  for (const [socketId, data] of playerSockets.entries()) {
+    if (data.playerId.toString() === playerId.toString()) {
+      return socketId;
+    }
+  }
+  return null;
+}
+
+// ==================== API ROUTES ====================
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    connections: io.engine.clientsCount,
+    activeRooms: activeRooms.size,
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+});
+
+// Get public rooms
+app.get('/api/rooms', async (req, res) => {
+  try {
+    const rooms = await GameRoom.find({ 
+      gameStatus: 'waiting',
+      'settings.privateRoom': false 
+    })
+    .populate('players', 'playerName score')
+    .sort({ createdAt: -1 })
+    .limit(20);
+    
+    res.json(rooms.map(room => ({
+      id: room._id,
+      code: room.roomCode,
+      name: room.roomName,
+      players: room.players.length,
+      maxPlayers: room.maxPlayers,
+      settings: room.settings,
+      createdAt: room.createdAt
+    })));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get room info
+app.get('/api/rooms/:code', async (req, res) => {
+  try {
+    const room = await GameRoom.findOne({ 
+      roomCode: req.params.code.toUpperCase() 
+    }).populate('players', 'playerName isReady isOnline score');
+    
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    
+    res.json({
+      id: room._id,
+      code: room.roomCode,
+      name: room.roomName,
+      gameStatus: room.gameStatus,
+      players: room.players,
+      maxPlayers: room.maxPlayers,
+      settings: room.settings,
+      createdAt: room.createdAt
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get player stats
+app.get('/api/players/:id/stats', async (req, res) => {
+  try {
+    const player = await Player.findById(req.params.id);
+    if (!player) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+    
+    res.json({
+      playerName: player.playerName,
+      totalGames: player.totalGames,
+      gamesWon: player.gamesWon,
+      gamesLost: player.gamesLost,
+      winRate: player.totalGames > 0 ? (player.gamesWon / player.totalGames * 100).toFixed(1) : 0,
+      score: player.score,
+      stats: player.stats,
+      createdAt: player.createdAt
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get leaderboard
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    const players = await Player.find({ totalGames: { $gt: 0 } })
+      .sort({ score: -1 })
+      .limit(100);
+    
+    res.json(players.map(p => ({
+      playerName: p.playerName,
+      score: p.score,
+      totalGames: p.totalGames,
+      gamesWon: p.gamesWon,
+      winRate: p.totalGames > 0 ? (p.gamesWon / p.totalGames * 100).toFixed(1) : 0,
+      kills: p.stats.kills,
+      correctAnswers: p.stats.correctAnswers
+    })));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Seed questions (for development)
+app.post('/api/seed-questions', async (req, res) => {
+  try {
+    const questions = [
+      // Zone 1: Easy questions
+      {
+        zone: 1,
+        difficulty: 'easy',
+        question: "Tác phẩm 'Mộng Đắc Thái Liên' thuộc thể loại nào?",
+        options: ["Tiểu thuyết", "Truyện ngắn", "Thơ", "Kịch"],
+        correctAnswer: "Tiểu thuyết",
+        points: 10
+      },
+      // Add more questions here...
+    ];
+
+    await Question.deleteMany({});
+    await Question.insertMany(questions);
+    
+    res.json({ message: 'Questions seeded successfully', count: questions.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== START SERVER ====================
+server.listen(PORT, () => {
+  console.log(`
+  ========================================
+  🎮 Ma Sói - Mộng Đắc Thái Liên Server
+  ========================================
+  🚀 Server running on port ${PORT}
+  📡 WebSocket: ws://localhost:${PORT}
+  🗄️  Database: ${MONGODB_URI}
+  ⏰ Time: ${new Date().toLocaleString()}
+  ========================================
+  `);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
