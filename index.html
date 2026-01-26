@@ -1,1187 +1,1206 @@
-/**
- * Ma Sói - Mộng Đắc Thái Liên
- * Complete Game Server - Single File Version
- * Real-time Game Server với Socket.io và MongoDB
- */
-
-// ==================== IMPORTS ====================
-require('dotenv').config();
-const express = require('express');
-const http = require('http');
-const socketIO = require('socket.io');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const { createClient } = require('redis');
-const { RateLimiterRedis } = require('rate-limiter-flexible');
-
-// ==================== CONFIGURATION ====================
-const app = express();
-const server = http.createServer(app);
-const PORT = process.env.PORT || 3000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/werewolf_game';
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
-
-// ==================== MIDDLEWARE ====================
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
-
-// ==================== MONGOOSE MODELS ====================
-
-// Kết nối MongoDB
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  useCreateIndex: true,
-  useFindAndModify: false
-});
-
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', () => console.log('✅ MongoDB connected'));
-
-// GameRoom Schema
-const gameRoomSchema = new mongoose.Schema({
-  roomCode: { 
-    type: String, 
-    unique: true,
-    required: true,
-    uppercase: true,
-    match: /^[A-Z0-9]{6}$/
-  },
-  roomName: { 
-    type: String, 
-    default: 'Ma Sói - Mộng Đắc Thái Liên'
-  },
-  adminId: { 
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Player'
-  },
-  maxPlayers: { 
-    type: Number, 
-    default: 50,
-    min: 5,
-    max: 100
-  },
-  gameStatus: { 
-    type: String, 
-    enum: ['waiting', 'playing', 'voting', 'ended', 'paused'],
-    default: 'waiting'
-  },
-  settings: {
-    gameDuration: { type: Number, default: 780, min: 300, max: 1800 },
-    wolfCount: { type: Number, default: null },
-    discussionTime: { type: Number, default: 60, min: 30, max: 300 },
-    votingTime: { type: Number, default: 180, min: 60, max: 600 },
-    enableChat: { type: Boolean, default: true },
-    enableKillCooldown: { type: Boolean, default: true },
-    privateRoom: { type: Boolean, default: false },
-    password: { type: String, default: null }
-  },
-  players: [{ 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Player' 
-  }],
-  spectators: [{ 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Player' 
-  }],
-  gameData: {
-    currentPhase: { type: String, default: 'day' },
-    currentZone: { type: Number, default: 1 },
-    dayCount: { type: Number, default: 1 },
-    phaseEndTime: { type: Date },
-    killedPlayers: [{ 
-      playerId: mongoose.Schema.Types.ObjectId,
-      killedBy: mongoose.Schema.Types.ObjectId,
-      phase: String,
-      timestamp: Date
-    }],
-    voteResults: [{
-      phase: String,
-      accusedPlayer: mongoose.Schema.Types.ObjectId,
-      voteCount: Number,
-      voters: [mongoose.Schema.Types.ObjectId]
-    }]
-  },
-  createdAt: { type: Date, default: Date.now },
-  startedAt: Date,
-  endedAt: Date
-}, {
-  timestamps: true
-});
-
-gameRoomSchema.index({ gameStatus: 1 });
-gameRoomSchema.index({ createdAt: -1 });
-gameRoomSchema.index({ 'settings.privateRoom': 1 });
-
-const GameRoom = mongoose.model('GameRoom', gameRoomSchema);
-
-// Player Schema
-const playerSchema = new mongoose.Schema({
-  socketId: { type: String, index: true },
-  playerName: { 
-    type: String, 
-    required: true,
-    trim: true,
-    minlength: 2,
-    maxlength: 20
-  },
-  roomId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'GameRoom',
-    index: true
-  },
-  role: { 
-    type: String, 
-    enum: ['villager', 'wolf', 'seer', 'guardian', 'hunter'],
-    default: 'villager'
-  },
-  revealedRole: { 
-    type: String, 
-    default: 'villager' 
-  },
-  isAlive: { 
-    type: Boolean, 
-    default: true,
-    index: true
-  },
-  isOnline: {
-    type: Boolean,
-    default: true,
-    index: true
-  },
-  score: { 
-    type: Number, 
-    default: 0 
-  },
-  currentZone: { 
-    type: Number, 
-    min: 1, 
-    max: 4,
-    default: 1
-  },
-  completedQuestions: {
-    zone1: { type: Number, default: 0 },
-    zone2: { type: Number, default: 0 },
-    zone3: { type: Number, default: 0 },
-    zone4: { type: Number, default: 0 }
-  },
-  killCooldown: { 
-    type: Date 
-  },
-  voteTarget: { 
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Player'
-  },
-  accusedTarget: { 
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Player'
-  },
-  isReady: { 
-    type: Boolean, 
-    default: false 
-  },
-  joinTime: { 
-    type: Date, 
-    default: Date.now 
-  },
-  lastSeen: { 
-    type: Date, 
-    default: Date.now 
-  },
-  totalGames: {
-    type: Number,
-    default: 0
-  },
-  gamesWon: {
-    type: Number,
-    default: 0
-  },
-  gamesLost: {
-    type: Number,
-    default: 0
-  },
-  stats: {
-    kills: { type: Number, default: 0 },
-    correctAnswers: { type: Number, default: 0 },
-    wrongAnswers: { type: Number, default: 0 },
-    voteAccuracy: { type: Number, default: 0 }
-  }
-}, {
-  timestamps: true
-});
-
-playerSchema.index({ roomId: 1, isAlive: 1 });
-playerSchema.index({ roomId: 1, role: 1 });
-playerSchema.index({ roomId: 1, score: -1 });
-
-const Player = mongoose.model('Player', playerSchema);
-
-// GameSession Schema (lưu lịch sử game)
-const gameSessionSchema = new mongoose.Schema({
-  roomCode: String,
-  roomId: { type: mongoose.Schema.Types.ObjectId, ref: 'GameRoom' },
-  players: [{
-    playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
-    playerName: String,
-    role: String,
-    finalScore: Number,
-    survived: Boolean,
-    kills: Number,
-    correctAnswers: Number
-  }],
-  winner: { type: String, enum: ['villagers', 'wolves', 'draw'] },
-  gameDuration: Number,
-  startedAt: Date,
-  endedAt: Date,
-  events: [{
-    type: { type: String },
-    playerId: mongoose.Schema.Types.ObjectId,
-    targetId: mongoose.Schema.Types.ObjectId,
-    data: mongoose.Schema.Types.Mixed,
-    timestamp: Date
-  }],
-  settings: mongoose.Schema.Types.Mixed
-}, {
-  timestamps: true
-});
-
-const GameSession = mongoose.model('GameSession', gameSessionSchema);
-
-// Question Schema
-const questionSchema = new mongoose.Schema({
-  zone: { type: Number, required: true, min: 1, max: 4 },
-  difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
-  category: { type: String, default: 'mong_dac_thai_lien' },
-  question: { type: String, required: true },
-  options: [{ type: String, required: true }],
-  correctAnswer: { type: String, required: true },
-  explanation: String,
-  points: { type: Number, default: 10 }
-});
-
-const Question = mongoose.model('Question', questionSchema);
-
-// ==================== SOCKET.IO SETUP ====================
-const io = socketIO(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || "*",
-    methods: ["GET", "POST"],
-    credentials: true
-  },
-  transports: ['websocket', 'polling'],
-  pingTimeout: 60000,
-  pingInterval: 25000,
-  cookie: false
-});
-
-// ==================== REDIS SETUP ====================
-let redisClient;
-let rateLimiter;
-
-(async () => {
-  try {
-    redisClient = createClient({ url: REDIS_URL });
-    await redisClient.connect();
-    console.log('✅ Redis connected');
-    
-    rateLimiter = new RateLimiterRedis({
-      storeClient: redisClient,
-      keyPrefix: 'socket',
-      points: 15,
-      duration: 1,
-    });
-  } catch (error) {
-    console.log('⚠️ Redis not available, using in-memory storage');
-    redisClient = null;
-  }
-})();
-
-// ==================== GAME STATE MANAGEMENT ====================
-const activeRooms = new Map();
-const playerSockets = new Map();
-
-class GameEngine {
-  constructor(roomId) {
-    this.roomId = roomId;
-    this.timers = new Map();
-    this.isProcessing = false;
-  }
-
-  async startGame(room) {
-    try {
-      const players = await Player.find({ roomId: room._id });
-      
-      // Phân vai
-      const wolfCount = room.settings.wolfCount || Math.max(1, Math.floor(players.length / 4));
-      const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
-      
-      shuffledPlayers.forEach((player, index) => {
-        player.role = index < wolfCount ? 'wolf' : 'villager';
-      });
-
-      // Lưu vai trò
-      await Promise.all(shuffledPlayers.map(p => p.save()));
-
-      // Cập nhật trạng thái phòng
-      room.gameStatus = 'playing';
-      room.startedAt = new Date();
-      room.gameData.currentPhase = 'day';
-      room.gameData.dayCount = 1;
-      room.gameData.phaseEndTime = new Date(Date.now() + (room.settings.gameDuration * 1000));
-      await room.save();
-
-      // Gửi thông báo bắt đầu game
-      io.to(room._id.toString()).emit('game-started', {
-        roomId: room._id,
-        players: shuffledPlayers.map(p => ({
-          id: p._id,
-          name: p.playerName,
-          role: p.role,
-          isAlive: p.isAlive
-        })),
-        gameDuration: room.settings.gameDuration,
-        wolfCount
-      });
-
-      // Bắt đầu timer
-      this.startGameTimer(room);
-
-      return true;
-    } catch (error) {
-      console.error('Error starting game:', error);
-      throw error;
-    }
-  }
-
-  async submitAnswer(playerId, zone, questionIndex, answer) {
-    try {
-      const player = await Player.findById(playerId);
-      if (!player || !player.isAlive) return false;
-
-      // Lấy câu hỏi
-      const questions = await Question.find({ zone }).skip(questionIndex).limit(1);
-      if (!questions.length) return false;
-
-      const question = questions[0];
-      const isCorrect = answer === question.correctAnswer;
-
-      if (isCorrect) {
-        // Cập nhật progress
-        player.completedQuestions[`zone${zone}`] += 1;
-        player.score += question.points;
-        player.stats.correctAnswers += 1;
-        await player.save();
-
-        // Gửi thông báo
-        io.to(player.roomId.toString()).emit('answer-correct', {
-          playerId: player._id,
-          playerName: player.playerName,
-          zone,
-          points: question.points,
-          streak: player.completedQuestions[`zone${zone}`]
-        });
-
-        // Kiểm tra nếu hoàn thành zone
-        if (player.completedQuestions[`zone${zone}`] >= 10) {
-          io.to(player.roomId.toString()).emit('zone-completed', {
-            playerId: player._id,
-            playerName: player.playerName,
-            zone
-          });
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Sói - Mộng Đắc Thái Liên</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-      } else {
-        player.stats.wrongAnswers += 1;
-        await player.save();
-      }
-
-      return { correct: isCorrect, correctAnswer: question.correctAnswer };
-    } catch (error) {
-      console.error('Error submitting answer:', error);
-      throw error;
-    }
-  }
-
-  async processVote(roomId, voterId, targetId) {
-    try {
-      const room = await GameRoom.findById(roomId);
-      const voter = await Player.findById(voterId);
-      const target = await Player.findById(targetId);
-
-      if (!room || !voter || !target || room.gameStatus !== 'voting') {
-        return false;
-      }
-
-      voter.voteTarget = targetId;
-      await voter.save();
-
-      // Kiểm tra xem đã đủ vote chưa
-      const alivePlayers = await Player.find({ 
-        roomId, 
-        isAlive: true 
-      });
-      
-      const votedPlayers = await Player.find({ 
-        roomId, 
-        isAlive: true,
-        voteTarget: { $exists: true, $ne: null }
-      });
-
-      // Broadcast vote
-      io.to(roomId.toString()).emit('vote-submitted', {
-        voterId,
-        voterName: voter.playerName,
-        targetId,
-        targetName: target.playerName,
-        votesNeeded: Math.ceil(alivePlayers.length / 2)
-      });
-
-      // Nếu đủ vote
-      if (votedPlayers.length >= Math.ceil(alivePlayers.length / 2)) {
-        await this.countVotes(room);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error processing vote:', error);
-      throw error;
-    }
-  }
-
-  async countVotes(room) {
-    try {
-      const players = await Player.find({ roomId: room._id, isAlive: true });
-      
-      // Đếm votes
-      const voteCount = {};
-      players.forEach(player => {
-        if (player.voteTarget) {
-          voteCount[player.voteTarget.toString()] = 
-            (voteCount[player.voteTarget.toString()] || 0) + 1;
-        }
-      });
-
-      // Tìm người bị vote nhiều nhất
-      let maxVotes = 0;
-      let accusedPlayerId = null;
-      
-      for (const [playerId, count] of Object.entries(voteCount)) {
-        if (count > maxVotes) {
-          maxVotes = count;
-          accusedPlayerId = playerId;
-        }
-      }
-
-      if (accusedPlayerId && maxVotes >= Math.ceil(players.length / 2)) {
-        // Loại người chơi
-        const accusedPlayer = await Player.findById(accusedPlayerId);
-        if (accusedPlayer) {
-          accusedPlayer.isAlive = false;
-          await accusedPlayer.save();
-
-          // Lưu kết quả vote
-          room.gameData.voteResults.push({
-            phase: `day-${room.gameData.dayCount}`,
-            accusedPlayer: accusedPlayerId,
-            voteCount: maxVotes,
-            voters: players.filter(p => p.voteTarget?.toString() === accusedPlayerId).map(p => p._id)
-          });
-          await room.save();
-
-          // Thông báo
-          io.to(room._id.toString()).emit('player-eliminated', {
-            playerId: accusedPlayer._id,
-            playerName: accusedPlayer.playerName,
-            reason: 'vote',
-            role: accusedPlayer.role,
-            voteCount: maxVotes
-          });
-
-          // Kiểm tra điều kiện thắng
-          await this.checkWinConditions(room);
-        }
-      }
-
-      // Reset votes
-      await Player.updateMany(
-        { roomId: room._id },
-        { $set: { voteTarget: null } }
-      );
-
-      return true;
-    } catch (error) {
-      console.error('Error counting votes:', error);
-      throw error;
-    }
-  }
-
-  async checkWinConditions(room) {
-    try {
-      const players = await Player.find({ roomId: room._id, isAlive: true });
-      const wolves = players.filter(p => p.role === 'wolf');
-      const villagers = players.filter(p => p.role !== 'wolf');
-
-      let winner = null;
-
-      if (wolves.length === 0) {
-        winner = 'villagers';
-      } else if (wolves.length >= villagers.length) {
-        winner = 'wolves';
-      }
-
-      if (winner) {
-        await this.endGame(room, winner);
-      }
-
-      return winner;
-    } catch (error) {
-      console.error('Error checking win conditions:', error);
-      throw error;
-    }
-  }
-
-  async endGame(room, winner) {
-    try {
-      room.gameStatus = 'ended';
-      room.endedAt = new Date();
-      await room.save();
-
-      // Tính điểm và cập nhật thống kê
-      const players = await Player.find({ roomId: room._id });
-      
-      players.forEach(async (player) => {
-        const didWin = (winner === 'wolves' && player.role === 'wolf') || 
-                       (winner === 'villagers' && player.role !== 'wolf');
         
-        player.totalGames += 1;
-        if (didWin) {
-          player.gamesWon += 1;
-          player.score += 100; // Bonus thắng
-        } else {
-          player.gamesLost += 1;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
         }
-
-        // Tính vote accuracy
-        const alivePlayers = await Player.find({ roomId: room._id, isAlive: true });
-        const wolves = alivePlayers.filter(p => p.role === 'wolf');
-        if (player.voteTarget && wolves.length > 0) {
-          const votedPlayer = await Player.findById(player.voteTarget);
-          if (votedPlayer && votedPlayer.role === 'wolf') {
-            player.stats.voteAccuracy = 
-              (player.stats.voteAccuracy + 1) / player.totalGames;
-          }
-        }
-
-        await player.save();
-      });
-
-      // Tạo game session record
-      const gameSession = new GameSession({
-        roomCode: room.roomCode,
-        roomId: room._id,
-        players: players.map(p => ({
-          playerId: p._id,
-          playerName: p.playerName,
-          role: p.role,
-          finalScore: p.score,
-          survived: p.isAlive,
-          kills: p.stats.kills,
-          correctAnswers: p.stats.correctAnswers
-        })),
-        winner,
-        gameDuration: Math.floor((room.endedAt - room.startedAt) / 1000),
-        startedAt: room.startedAt,
-        endedAt: room.endedAt,
-        settings: room.settings
-      });
-      await gameSession.save();
-
-      // Gửi kết quả game
-      io.to(room._id.toString()).emit('game-ended', {
-        winner,
-        players: players.map(p => ({
-          id: p._id,
-          name: p.playerName,
-          role: p.role,
-          score: p.score,
-          isAlive: p.isAlive,
-          kills: p.stats.kills,
-          correctAnswers: p.stats.correctAnswers
-        })),
-        duration: gameSession.gameDuration
-      });
-
-      // Xóa room khỏi activeRooms
-      activeRooms.delete(room._id.toString());
-
-      return true;
-    } catch (error) {
-      console.error('Error ending game:', error);
-      throw error;
-    }
-  }
-
-  startGameTimer(room) {
-    const timer = setTimeout(async () => {
-      try {
-        const currentRoom = await GameRoom.findById(room._id);
-        if (currentRoom && currentRoom.gameStatus === 'playing') {
-          await this.endGame(currentRoom, 'draw'); // Hòa nếu hết giờ
-        }
-      } catch (error) {
-        console.error('Error in game timer:', error);
-      }
-    }, room.settings.gameDuration * 1000);
-
-    this.timers.set('game', timer);
-  }
-}
-
-// ==================== SOCKET.IO EVENT HANDLERS ====================
-
-io.use(async (socket, next) => {
-  try {
-    if (redisClient && rateLimiter) {
-      await rateLimiter.consume(socket.handshake.address);
-    }
-    next();
-  } catch (error) {
-    console.log('Rate limit exceeded for:', socket.handshake.address);
-    next(new Error('Too many connection attempts'));
-  }
-});
-
-io.on('connection', (socket) => {
-  console.log(`[${new Date().toISOString()}] Client connected: ${socket.id}`);
-  
-  // Heartbeat
-  socket.on('heartbeat', () => {
-    socket.emit('heartbeat-response', { timestamp: Date.now() });
-  });
-
-  // Tạo phòng
-  socket.on('create-room', async ({ playerName, roomName, maxPlayers, settings }) => {
-    try {
-      // Tạo mã phòng ngẫu nhiên
-      const roomCode = generateRoomCode();
-      
-      // Tạo player
-      const player = new Player({
-        socketId: socket.id,
-        playerName,
-        isOnline: true,
-        lastSeen: new Date()
-      });
-      await player.save();
-
-      // Tạo phòng
-      const room = new GameRoom({
-        roomCode,
-        roomName: roomName || `Phòng ${roomCode}`,
-        adminId: player._id,
-        maxPlayers: maxPlayers || 50,
-        settings: {
-          ...settings,
-          wolfCount: settings?.wolfCount || null
-        },
-        players: [player._id]
-      });
-      await room.save();
-
-      player.roomId = room._id;
-      await player.save();
-
-      // Join socket room
-      socket.join(room._id.toString());
-      playerSockets.set(socket.id, { playerId: player._id, roomId: room._id });
-
-      // Khởi tạo game engine
-      activeRooms.set(room._id.toString(), new GameEngine(room._id));
-
-      socket.emit('room-created', {
-        roomId: room._id,
-        roomCode,
-        playerId: player._id,
-        isAdmin: true
-      });
-
-      console.log(`Room created: ${roomCode} by ${playerName}`);
-    } catch (error) {
-      console.error('Error creating room:', error);
-      socket.emit('error', { message: 'Failed to create room' });
-    }
-  });
-
-  // Tham gia phòng
-  socket.on('join-room', async ({ roomCode, playerName, password }) => {
-    try {
-      const room = await GameRoom.findOne({ roomCode: roomCode.toUpperCase() });
-      
-      if (!room) {
-        socket.emit('error', { message: 'Room not found' });
-        return;
-      }
-
-      if (room.gameStatus !== 'waiting') {
-        socket.emit('error', { message: 'Game already started' });
-        return;
-      }
-
-      if (room.players.length >= room.maxPlayers) {
-        socket.emit('error', { message: 'Room is full' });
-        return;
-      }
-
-      if (room.settings.privateRoom && room.settings.password !== password) {
-        socket.emit('error', { message: 'Incorrect password' });
-        return;
-      }
-
-      // Tạo player
-      const player = new Player({
-        socketId: socket.id,
-        playerName,
-        roomId: room._id,
-        isOnline: true,
-        lastSeen: new Date()
-      });
-      await player.save();
-
-      // Thêm vào phòng
-      room.players.push(player._id);
-      await room.save();
-
-      // Join socket room
-      socket.join(room._id.toString());
-      playerSockets.set(socket.id, { playerId: player._id, roomId: room._id });
-
-      // Thông báo cho người khác
-      socket.to(room._id.toString()).emit('player-joined', {
-        playerId: player._id,
-        playerName: player.playerName,
-        totalPlayers: room.players.length
-      });
-
-      // Gửi thông tin phòng cho người chơi mới
-      const players = await Player.find({ roomId: room._id });
-      const roomInfo = {
-        roomId: room._id,
-        roomCode: room.roomCode,
-        roomName: room.roomName,
-        adminId: room.adminId,
-        gameStatus: room.gameStatus,
-        players: players.map(p => ({
-          id: p._id,
-          name: p.playerName,
-          isReady: p.isReady,
-          isOnline: p.isOnline
-        })),
-        settings: room.settings,
-        playerId: player._id,
-        isAdmin: room.adminId.toString() === player._id.toString()
-      };
-
-      socket.emit('room-joined', roomInfo);
-
-      console.log(`Player ${playerName} joined room ${roomCode}`);
-    } catch (error) {
-      console.error('Error joining room:', error);
-      socket.emit('error', { message: 'Failed to join room' });
-    }
-  });
-
-  // Bắt đầu game
-  socket.on('start-game', async ({ roomId }) => {
-    try {
-      const playerData = playerSockets.get(socket.id);
-      if (!playerData) return;
-
-      const room = await GameRoom.findById(roomId);
-      if (!room || room.gameStatus !== 'waiting') return;
-
-      // Kiểm tra quyền admin
-      if (room.adminId.toString() !== playerData.playerId.toString()) {
-        socket.emit('error', { message: 'Only admin can start game' });
-        return;
-      }
-
-      // Kiểm tra số lượng người chơi
-      const players = await Player.find({ roomId });
-      if (players.length < 5) {
-        socket.emit('error', { message: 'Need at least 5 players' });
-        return;
-      }
-
-      // Bắt đầu game
-      const engine = activeRooms.get(roomId.toString());
-      if (engine) {
-        await engine.startGame(room);
-      }
-    } catch (error) {
-      console.error('Error starting game:', error);
-      socket.emit('error', { message: 'Failed to start game' });
-    }
-  });
-
-  // Submit answer
-  socket.on('submit-answer', async ({ roomId, zone, questionIndex, answer }) => {
-    try {
-      const playerData = playerSockets.get(socket.id);
-      if (!playerData) return;
-
-      const engine = activeRooms.get(roomId.toString());
-      if (engine) {
-        const result = await engine.submitAnswer(
-          playerData.playerId, 
-          zone, 
-          questionIndex, 
-          answer
-        );
-        socket.emit('answer-result', result);
-      }
-    } catch (error) {
-      console.error('Error submitting answer:', error);
-      socket.emit('error', { message: 'Failed to submit answer' });
-    }
-  });
-
-  // Vote
-  socket.on('vote-player', async ({ roomId, targetId }) => {
-    try {
-      const playerData = playerSockets.get(socket.id);
-      if (!playerData) return;
-
-      const engine = activeRooms.get(roomId.toString());
-      if (engine) {
-        await engine.processVote(roomId, playerData.playerId, targetId);
-      }
-    } catch (error) {
-      console.error('Error voting:', error);
-      socket.emit('error', { message: 'Failed to vote' });
-    }
-  });
-
-  // Chat
-  socket.on('send-message', async ({ roomId, message, type = 'public' }) => {
-    try {
-      const playerData = playerSockets.get(socket.id);
-      if (!playerData) return;
-
-      const player = await Player.findById(playerData.playerId);
-      if (!player || !player.isAlive) return;
-
-      const room = await GameRoom.findById(roomId);
-      if (!room || !room.settings.enableChat) return;
-
-      // Filter bad words
-      const filteredMessage = filterMessage(message);
-
-      const chatData = {
-        playerId: player._id,
-        playerName: player.playerName,
-        message: filteredMessage,
-        type,
-        timestamp: new Date(),
-        role: type === 'wolf' ? 'wolf' : player.revealedRole
-      };
-
-      // Gửi tin nhắn
-      if (type === 'wolf') {
-        // Chỉ gửi cho sói
-        const wolves = await Player.find({ 
-          roomId, 
-          role: 'wolf',
-          isAlive: true 
-        });
         
-        wolves.forEach(wolf => {
-          const wolfSocket = findSocketByPlayerId(wolf._id);
-          if (wolfSocket) {
-            io.to(wolfSocket).emit('new-message', chatData);
-          }
-        });
-      } else if (type === 'private') {
-        // Chat riêng (cần target)
-        socket.emit('new-message', chatData);
-      } else {
-        // Chat công khai
-        io.to(roomId.toString()).emit('new-message', chatData);
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-  });
-
-  // Ready/unready
-  socket.on('toggle-ready', async ({ roomId }) => {
-    try {
-      const playerData = playerSockets.get(socket.id);
-      if (!playerData) return;
-
-      const player = await Player.findById(playerData.playerId);
-      if (!player) return;
-
-      player.isReady = !player.isReady;
-      await player.save();
-
-      io.to(roomId.toString()).emit('player-ready-changed', {
-        playerId: player._id,
-        playerName: player.playerName,
-        isReady: player.isReady
-      });
-    } catch (error) {
-      console.error('Error toggling ready:', error);
-    }
-  });
-
-  // Leave room
-  socket.on('leave-room', async ({ roomId }) => {
-    try {
-      const playerData = playerSockets.get(socket.id);
-      if (!playerData) return;
-
-      const player = await Player.findById(playerData.playerId);
-      if (!player) return;
-
-      // Xóa player khỏi phòng
-      await GameRoom.findByIdAndUpdate(roomId, {
-        $pull: { players: player._id }
-      });
-
-      // Xóa player
-      await Player.findByIdAndDelete(player._id);
-
-      // Thông báo cho người khác
-      socket.to(roomId.toString()).emit('player-left', {
-        playerId: player._id,
-        playerName: player.playerName
-      });
-
-      // Leave socket room
-      socket.leave(roomId.toString());
-      playerSockets.delete(socket.id);
-
-      socket.emit('room-left');
-    } catch (error) {
-      console.error('Error leaving room:', error);
-    }
-  });
-
-  // Disconnect
-  socket.on('disconnect', async () => {
-    console.log(`[${new Date().toISOString()}] Client disconnected: ${socket.id}`);
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            color: #ff6b6b;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+        
+        .subtitle {
+            color: #4ecdc4;
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+        
+        .game-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .game-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section h2 {
+            color: #4ecdc4;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4ecdc4;
+            padding-bottom: 10px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        input, select {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(45deg, #ffe66d, #ffd166);
+            color: #333;
+        }
+        
+        .player-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .player-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .player-name {
+            font-weight: bold;
+        }
+        
+        .player-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .status-online {
+            background: #4ecdc4;
+            box-shadow: 0 0 5px #4ecdc4;
+        }
+        
+        .status-offline {
+            background: #ff6b6b;
+        }
+        
+        .status-ready {
+            color: #4ecdc4;
+            font-size: 0.9rem;
+        }
+        
+        .chat-container {
+            grid-column: span 2;
+        }
+        
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .message-sender {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+        
+        .message-time {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 107, 107, 0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            max-width: 300px;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .info-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ff6b6b;
+            margin-top: 5px;
+        }
+        
+        .role-display {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 2px solid transparent;
+        }
+        
+        .role-wolf {
+            border-color: #ff6b6b;
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(0, 0, 0, 0.3));
+        }
+        
+        .role-villager {
+            border-color: #4ecdc4;
+            background: linear-gradient(135deg, rgba(78, 205, 196, 0.1), rgba(0, 0, 0, 0.3));
+        }
+        
+        .role-display h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .game-phase {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .phase-day {
+            color: #ffe66d;
+        }
+        
+        .phase-night {
+            color: #1a1a2e;
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 2px solid #4ecdc4;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #4ecdc4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .game-action {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .action-btn {
+            padding: 12px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .wolf-action {
+            background: linear-gradient(45deg, rgba(255, 107, 107, 0.2), rgba(255, 107, 107, 0.1));
+        }
+        
+        .wolf-action:hover {
+            background: linear-gradient(45deg, rgba(255, 107, 107, 0.3), rgba(255, 107, 107, 0.2));
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Ma Sói - Mộng Đắc Thái Liên</h1>
+            <div class="subtitle">Kết hợp trí tuệ văn học và chiến thuật xã hội</div>
+        </header>
+        
+        <div class="game-info" id="gameInfo">
+            <div class="info-card">
+                <div>Người chơi online</div>
+                <div class="info-value" id="onlineCount">0</div>
+            </div>
+            <div class="info-card">
+                <div>Phòng đang chờ</div>
+                <div class="info-value" id="roomCount">0</div>
+            </div>
+            <div class="info-card">
+                <div>Game đang chơi</div>
+                <div class="info-value" id="gameCount">0</div>
+            </div>
+        </div>
+        
+        <!-- Phần chọn vai trò và room -->
+        <div id="lobbySection">
+            <div class="game-container">
+                <!-- Tạo phòng -->
+                <div class="section">
+                    <h2>🏠 Tạo Phòng Mới</h2>
+                    <div class="input-group">
+                        <input type="text" id="playerName" placeholder="Tên người chơi" maxlength="20">
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="roomName" placeholder="Tên phòng (tuỳ chọn)">
+                    </div>
+                    <div class="input-group">
+                        <select id="maxPlayers">
+                            <option value="10">10 người chơi</option>
+                            <option value="15">15 người chơi</option>
+                            <option value="20" selected>20 người chơi</option>
+                            <option value="30">30 người chơi</option>
+                            <option value="50">50 người chơi</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>
+                            <input type="checkbox" id="privateRoom"> Phòng riêng tư
+                        </label>
+                    </div>
+                    <div class="input-group hidden" id="passwordGroup">
+                        <input type="password" id="roomPassword" placeholder="Mật khẩu phòng">
+                    </div>
+                    <button onclick="createRoom()">🎮 Tạo Phòng</button>
+                </div>
+                
+                <!-- Tham gia phòng -->
+                <div class="section">
+                    <h2>🚪 Tham Gia Phòng</h2>
+                    <div class="input-group">
+                        <input type="text" id="joinPlayerName" placeholder="Tên người chơi" maxlength="20">
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="roomCode" placeholder="Mã phòng (6 ký tự)" maxlength="6" style="text-transform: uppercase">
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="joinPassword" placeholder="Mật khẩu (nếu có)">
+                    </div>
+                    <button onclick="joinRoom()" class="btn-secondary">🎯 Tham Gia</button>
+                    
+                    <h3 style="margin-top: 20px;">📋 Phòng Công Khai</h3>
+                    <div class="player-list" id="publicRooms">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Đang tải danh sách phòng...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Phòng chờ -->
+        <div class="section hidden" id="roomSection">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>👥 Phòng: <span id="roomTitle"></span></h2>
+                <button onclick="leaveRoom()" class="btn-warning">👋 Rời Phòng</button>
+            </div>
+            
+            <div class="game-info">
+                <div class="info-card">
+                    <div>Mã phòng</div>
+                    <div class="info-value" id="roomCodeDisplay">-</div>
+                </div>
+                <div class="info-card">
+                    <div>Người chơi</div>
+                    <div class="info-value"><span id="currentPlayers">0</span>/<span id="maxPlayersDisplay">0</span></div>
+                </div>
+                <div class="info-card">
+                    <div>Trạng thái</div>
+                    <div class="info-value" id="roomStatus">Chờ</div>
+                </div>
+            </div>
+            
+            <h3>🎮 Người chơi trong phòng</h3>
+            <div class="player-list" id="roomPlayers"></div>
+            
+            <div id="adminControls" class="hidden">
+                <div style="margin-top: 20px; text-align: center;">
+                    <button onclick="startGame()" style="width: 200px; padding: 15px; font-size: 18px;">
+                        🚀 Bắt đầu game
+                    </button>
+                    <p style="margin-top: 10px; color: #ffe66d;">Bạn là chủ phòng!</p>
+                </div>
+            </div>
+            
+            <div id="playerControls" style="margin-top: 20px;">
+                <button onclick="toggleReady()" id="readyButton" style="width: 100%;">
+                    ✅ Bấm để sẵn sàng
+                </button>
+            </div>
+        </div>
+        
+        <!-- Game đang chơi -->
+        <div class="section hidden" id="gameSection">
+            <div class="role-display" id="roleDisplay">
+                <h3>🎭 Vai trò của bạn: <span id="playerRole">Đang chờ...</span></h3>
+                <div id="roleDescription"></div>
+            </div>
+            
+            <div class="game-phase" id="gamePhase">
+                Giai đoạn: <span id="phaseText">Ban ngày</span>
+                <div id="timer">Thời gian: <span id="timeLeft">780</span>s</div>
+            </div>
+            
+            <div class="game-container">
+                <!-- Thông tin game -->
+                <div class="section">
+                    <h2>📊 Thông tin game</h2>
+                    <div id="gameStats">
+                        <div class="player-list" id="alivePlayers"></div>
+                    </div>
+                    
+                    <div class="game-action">
+                        <div class="action-btn" onclick="votePhase()">🗳️ Vote</div>
+                        <div class="action-btn wolf-action hidden" onclick="wolfAction()">🐺 Hành động sói</div>
+                        <div class="action-btn" onclick="answerQuestion()">❓ Trả lời câu hỏi</div>
+                        <div class="action-btn" onclick="viewScore()">🏆 Bảng điểm</div>
+                    </div>
+                </div>
+                
+                <!-- Câu hỏi -->
+                <div class="section hidden" id="questionSection">
+                    <h2>📚 Câu hỏi Mộng Đắc Thái Liên</h2>
+                    <div id="questionInfo">
+                        <p>Khu vực: <span id="currentZone">1</span></p>
+                        <p>Câu: <span id="questionNumber">1</span>/10</p>
+                    </div>
+                    <h3 id="questionText">Câu hỏi đang tải...</h3>
+                    <div id="optionsContainer"></div>
+                    <div style="margin-top: 15px;">
+                        <button onclick="submitAnswer()">📤 Gửi câu trả lời</button>
+                        <button onclick="cancelQuestion()" class="btn-warning" style="margin-top: 10px;">❌ Quay lại</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat -->
+        <div class="section chat-container">
+            <h2>💬 Chat</h2>
+            <div id="messages"></div>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <input type="text" id="messageInput" placeholder="Nhập tin nhắn..." style="flex: 1;">
+                <button onclick="sendMessage()" style="width: 100px;">Gửi</button>
+            </div>
+        </div>
+    </div>
     
-    try {
-      const playerData = playerSockets.get(socket.id);
-      if (playerData) {
-        const player = await Player.findById(playerData.playerId);
-        if (player) {
-          player.isOnline = false;
-          player.lastSeen = new Date();
-          await player.save();
-
-          // Thông báo cho phòng
-          if (player.roomId) {
-            socket.to(player.roomId.toString()).emit('player-offline', {
-              playerId: player._id,
-              playerName: player.playerName
+    <!-- Modal thông báo -->
+    <div id="notificationModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="modalTitle">Thông báo</h2>
+            <div id="modalContent"></div>
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="closeModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Biến toàn cục
+        let socket = null;
+        let currentRoom = null;
+        let currentPlayer = null;
+        let gameState = null;
+        let notifications = [];
+        
+        // Kết nối WebSocket khi trang load
+        window.onload = function() {
+            connectSocket();
+            loadPublicRooms();
+            setInterval(updateStats, 5000);
+            
+            // Hiển thị checkbox password
+            document.getElementById('privateRoom').addEventListener('change', function(e) {
+                document.getElementById('passwordGroup').classList.toggle('hidden', !e.target.checked);
             });
-          }
+        };
+        
+        // Kết nối WebSocket
+        function connectSocket() {
+            socket = io();
+            
+            socket.on('connect', () => {
+                console.log('Đã kết nối đến server');
+                showNotification('✅ Đã kết nối đến server game');
+            });
+            
+            socket.on('disconnect', () => {
+                showNotification('⚠️ Mất kết nối với server. Đang thử kết nối lại...');
+                setTimeout(connectSocket, 3000);
+            });
+            
+            socket.on('room-created', (data) => {
+                currentRoom = data.roomId;
+                currentPlayer = {
+                    id: data.playerId,
+                    isAdmin: data.isAdmin
+                };
+                showNotification(`✅ Đã tạo phòng ${data.roomCode}!`);
+                showRoomSection(data);
+                document.getElementById('roomCodeDisplay').textContent = data.roomCode;
+                document.getElementById('roomTitle').textContent = data.roomCode;
+                updatePlayerList(data.players || []);
+            });
+            
+            socket.on('room-joined', (data) => {
+                currentRoom = data.roomId;
+                currentPlayer = {
+                    id: data.playerId,
+                    isAdmin: data.isAdmin
+                };
+                showNotification(`✅ Đã tham gia phòng ${data.roomCode}!`);
+                showRoomSection(data);
+                document.getElementById('roomCodeDisplay').textContent = data.roomCode;
+                document.getElementById('roomTitle').textContent = data.roomName;
+                document.getElementById('roomStatus').textContent = getStatusText(data.gameStatus);
+                document.getElementById('currentPlayers').textContent = data.players.length;
+                document.getElementById('maxPlayersDisplay').textContent = data.settings.maxPlayers;
+                updatePlayerList(data.players);
+                
+                // Hiển thị controls cho admin
+                if (data.isAdmin) {
+                    document.getElementById('adminControls').classList.remove('hidden');
+                }
+            });
+            
+            socket.on('player-joined', (data) => {
+                showNotification(`👤 ${data.playerName} đã tham gia phòng`);
+                document.getElementById('currentPlayers').textContent = data.totalPlayers;
+                if (data.players) {
+                    updatePlayerList(data.players);
+                }
+            });
+            
+            socket.on('player-left', (data) => {
+                showNotification(`👋 ${data.playerName} đã rời phòng`);
+                document.getElementById('currentPlayers').textContent = 
+                    parseInt(document.getElementById('currentPlayers').textContent) - 1;
+            });
+            
+            socket.on('player-ready-changed', (data) => {
+                showNotification(`${data.playerName} ${data.isReady ? 'đã sẵn sàng' : 'chưa sẵn sàng'}`);
+                updatePlayerStatus(data.playerId, data.isReady);
+            });
+            
+            socket.on('game-started', (data) => {
+                gameState = data;
+                showNotification(`🎮 Game đã bắt đầu! Có ${data.wolfCount} con sói.`);
+                showGameSection();
+                updateGamePlayers(data.players);
+                
+                // Cập nhật vai trò của người chơi
+                const player = data.players.find(p => p.id === currentPlayer.id);
+                if (player) {
+                    document.getElementById('playerRole').textContent = getRoleText(player.role);
+                    document.getElementById('roleDescription').innerHTML = getRoleDescription(player.role);
+                    document.getElementById('roleDisplay').className = `role-display role-${player.role}`;
+                    
+                    // Hiển thị button cho sói
+                    if (player.role === 'wolf') {
+                        document.querySelector('.wolf-action').classList.remove('hidden');
+                    }
+                }
+                
+                // Bắt đầu timer
+                startGameTimer(data.gameDuration);
+            });
+            
+            socket.on('new-message', (data) => {
+                addMessage(data.playerName, data.message, new Date(data.timestamp));
+            });
+            
+            socket.on('player-eliminated', (data) => {
+                showNotification(`💀 ${data.playerName} đã bị loại! (Vai trò: ${getRoleText(data.role)})`);
+                updatePlayerEliminated(data.playerId);
+            });
+            
+            socket.on('game-ended', (data) => {
+                showGameResults(data);
+            });
+            
+            socket.on('answer-correct', (data) => {
+                showNotification(`✅ ${data.playerName} trả lời đúng +${data.points} điểm!`);
+            });
+            
+            socket.on('zone-completed', (data) => {
+                showNotification(`🏆 ${data.playerName} đã hoàn thành khu vực ${data.zone}!`);
+            });
+            
+            socket.on('vote-submitted', (data) => {
+                showNotification(`🗳️ ${data.voterName} đã vote ${data.targetName}`);
+            });
+            
+            socket.on('answer-result', (data) => {
+                if (data.correct) {
+                    showNotification(`✅ Câu trả lời đúng! +${data.points || 10} điểm`);
+                } else {
+                    showNotification(`❌ Sai rồi! Đáp án đúng: ${data.correctAnswer}`);
+                }
+                document.getElementById('questionSection').classList.add('hidden');
+            });
+            
+            socket.on('error', (data) => {
+                showNotification(`❌ Lỗi: ${data.message}`);
+            });
+            
+            socket.on('heartbeat-response', (data) => {
+                // Giữ kết nối
+            });
+            
+            // Gửi heartbeat mỗi 10 giây
+            setInterval(() => {
+                if (socket && socket.connected) {
+                    socket.emit('heartbeat');
+                }
+            }, 10000);
         }
-      }
-      
-      playerSockets.delete(socket.id);
-    } catch (error) {
-      console.error('Error handling disconnect:', error);
-    }
-  });
-});
-
-// ==================== HELPER FUNCTIONS ====================
-
-function generateRoomCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
-
-function filterMessage(message) {
-  // Simple bad word filter
-  const badWords = ['fuck', 'shit', 'asshole', 'bitch', 'damn'];
-  let filtered = message;
-  badWords.forEach(word => {
-    const regex = new RegExp(word, 'gi');
-    filtered = filtered.replace(regex, '*'.repeat(word.length));
-  });
-  return filtered;
-}
-
-function findSocketByPlayerId(playerId) {
-  for (const [socketId, data] of playerSockets.entries()) {
-    if (data.playerId.toString() === playerId.toString()) {
-      return socketId;
-    }
-  }
-  return null;
-}
-
-// ==================== API ROUTES ====================
-
-// Health check
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    connections: io.engine.clientsCount,
-    activeRooms: activeRooms.size,
-    uptime: process.uptime(),
-    memory: process.memoryUsage()
-  });
-});
-
-// Get public rooms
-app.get('/api/rooms', async (req, res) => {
-  try {
-    const rooms = await GameRoom.find({ 
-      gameStatus: 'waiting',
-      'settings.privateRoom': false 
-    })
-    .populate('players', 'playerName score')
-    .sort({ createdAt: -1 })
-    .limit(20);
-    
-    res.json(rooms.map(room => ({
-      id: room._id,
-      code: room.roomCode,
-      name: room.roomName,
-      players: room.players.length,
-      maxPlayers: room.maxPlayers,
-      settings: room.settings,
-      createdAt: room.createdAt
-    })));
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get room info
-app.get('/api/rooms/:code', async (req, res) => {
-  try {
-    const room = await GameRoom.findOne({ 
-      roomCode: req.params.code.toUpperCase() 
-    }).populate('players', 'playerName isReady isOnline score');
-    
-    if (!room) {
-      return res.status(404).json({ error: 'Room not found' });
-    }
-    
-    res.json({
-      id: room._id,
-      code: room.roomCode,
-      name: room.roomName,
-      gameStatus: room.gameStatus,
-      players: room.players,
-      maxPlayers: room.maxPlayers,
-      settings: room.settings,
-      createdAt: room.createdAt
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get player stats
-app.get('/api/players/:id/stats', async (req, res) => {
-  try {
-    const player = await Player.findById(req.params.id);
-    if (!player) {
-      return res.status(404).json({ error: 'Player not found' });
-    }
-    
-    res.json({
-      playerName: player.playerName,
-      totalGames: player.totalGames,
-      gamesWon: player.gamesWon,
-      gamesLost: player.gamesLost,
-      winRate: player.totalGames > 0 ? (player.gamesWon / player.totalGames * 100).toFixed(1) : 0,
-      score: player.score,
-      stats: player.stats,
-      createdAt: player.createdAt
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get leaderboard
-app.get('/api/leaderboard', async (req, res) => {
-  try {
-    const players = await Player.find({ totalGames: { $gt: 0 } })
-      .sort({ score: -1 })
-      .limit(100);
-    
-    res.json(players.map(p => ({
-      playerName: p.playerName,
-      score: p.score,
-      totalGames: p.totalGames,
-      gamesWon: p.gamesWon,
-      winRate: p.totalGames > 0 ? (p.gamesWon / p.totalGames * 100).toFixed(1) : 0,
-      kills: p.stats.kills,
-      correctAnswers: p.stats.correctAnswers
-    })));
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Seed questions (for development)
-app.post('/api/seed-questions', async (req, res) => {
-  try {
-    const questions = [
-      // Zone 1: Easy questions
-      {
-        zone: 1,
-        difficulty: 'easy',
-        question: "Tác phẩm 'Mộng Đắc Thái Liên' thuộc thể loại nào?",
-        options: ["Tiểu thuyết", "Truyện ngắn", "Thơ", "Kịch"],
-        correctAnswer: "Tiểu thuyết",
-        points: 10
-      },
-      // Add more questions here...
-    ];
-
-    await Question.deleteMany({});
-    await Question.insertMany(questions);
-    
-    res.json({ message: 'Questions seeded successfully', count: questions.length });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ==================== START SERVER ====================
-server.listen(PORT, () => {
-  console.log(`
-  ========================================
-  🎮 Ma Sói - Mộng Đắc Thái Liên Server
-  ========================================
-  🚀 Server running on port ${PORT}
-  📡 WebSocket: ws://localhost:${PORT}
-  🗄️  Database: ${MONGODB_URI}
-  ⏰ Time: ${new Date().toLocaleString()}
-  ========================================
-  `);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
-});
+        
+        // Tạo phòng
+        function createRoom() {
+            const playerName = document.getElementById('playerName').value.trim();
+            if (!playerName) {
+                showNotification('❌ Vui lòng nhập tên người chơi');
+                return;
+            }
+            
+            const roomName = document.getElementById('roomName').value.trim() || undefined;
+            const maxPlayers = parseInt(document.getElementById('maxPlayers').value);
+            const isPrivate = document.getElementById('privateRoom').checked;
+            const password = document.getElementById('roomPassword').value.trim() || null;
+            
+            const settings = {
+                maxPlayers: maxPlayers,
+                privateRoom: isPrivate,
+                password: isPrivate ? password : null,
+                gameDuration: 780, // 13 phút
+                enableChat: true
+            };
+            
+            socket.emit('create-room', {
+                playerName,
+                roomName,
+                maxPlayers,
+                settings
+            });
+        }
+        
+        // Tham gia phòng
+        function joinRoom() {
+            const playerName = document.getElementById('joinPlayerName').value.trim();
+            const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
+            const password = document.getElementById('joinPassword').value.trim() || null;
+            
+            if (!playerName) {
+                showNotification('❌ Vui lòng nhập tên người chơi');
+                return;
+            }
+            
+            if (!roomCode || roomCode.length !== 6) {
+                showNotification('❌ Mã phòng phải có 6 ký tự');
+                return;
+            }
+            
+            socket.emit('join-room', {
+                roomCode,
+                playerName,
+                password
+            });
+        }
+        
+        // Rời phòng
+        function leaveRoom() {
+            if (currentRoom) {
+                socket.emit('leave-room', { roomId: currentRoom });
+                currentRoom = null;
+                currentPlayer = null;
+                document.getElementById('lobbySection').classList.remove('hidden');
+                document.getElementById('roomSection').classList.add('hidden');
+                document.getElementById('gameSection').classList.add('hidden');
+                showNotification('👋 Đã rời phòng');
+                loadPublicRooms();
+            }
+        }
+        
+        // Bắt đầu game (admin only)
+        function startGame() {
+            if (currentRoom && currentPlayer.isAdmin) {
+                socket.emit('start-game', { roomId: currentRoom });
+            }
+        }
+        
+        // Toggle ready status
+        function toggleReady() {
+            if (currentRoom) {
+                socket.emit('toggle-ready', { roomId: currentRoom });
+                const button = document.getElementById('readyButton');
+                const isReady = button.textContent.includes('Chưa sẵn sàng');
+                button.textContent = isReady ? '✅ Bấm để sẵn sàng' : '✅ Đã sẵn sàng';
+                button.style.background = isReady ? 
+                    'linear-gradient(45deg, #ff6b6b, #ff8e53)' : 
+                    'linear-gradient(45deg, #4ecdc4, #44a08d)';
+            }
+        }
+        
+        // Gửi tin nhắn chat
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message && currentRoom) {
+                socket.emit('send-message', {
+                    roomId: currentRoom,
+                    message: message
+                });
+                input.value = '';
+            }
+        }
+        
+        // Tải danh sách phòng công khai
+        async function loadPublicRooms() {
+            try {
+                const response = await fetch('/api/rooms');
+                const rooms = await response.json();
+                
+                const container = document.getElementById('publicRooms');
+                if (rooms.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #888;">Chưa có phòng nào</p>';
+                    return;
+                }
+                
+                let html = '';
+                rooms.forEach(room => {
+                    html += `
+                        <div class="player-item" onclick="joinRoomFromList('${room.code}')">
+                            <div>
+                                <div class="player-name">${room.name}</div>
+                                <div style="font-size: 0.9rem; color: #4ecdc4;">Mã: ${room.code}</div>
+                            </div>
+                            <div>
+                                <div style="text-align: right;">${room.players}/${room.maxPlayers} người</div>
+                                <div style="font-size: 0.8rem; color: #ffe66d;">${room.players >= 5 ? '🟢 Có thể chơi' : '🟡 Đang chờ'}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading rooms:', error);
+            }
+        }
+        
+        // Tham gia phòng từ danh sách
+        function joinRoomFromList(roomCode) {
+            document.getElementById('roomCode').value = roomCode;
+            document.getElementById('joinPlayerName').focus();
+        }
+        
+        // Hiển thị section phòng
+        function showRoomSection(data) {
+            document.getElementById('lobbySection').classList.add('hidden');
+            document.getElementById('roomSection').classList.remove('hidden');
+            document.getElementById('gameSection').classList.add('hidden');
+        }
+        
+        // Hiển thị section game
+        function showGameSection() {
+            document.getElementById('lobbySection').classList.add('hidden');
+            document.getElementById('roomSection').classList.add('hidden');
+            document.getElementById('gameSection').classList.remove('hidden');
+        }
+        
+        // Cập nhật danh sách người chơi
+        function updatePlayerList(players) {
+            const container = document.getElementById('roomPlayers');
+            let html = '';
+            
+            players.forEach(player => {
+                html += `
+                    <div class="player-item">
+                        <div class="player-name">${player.name} ${player.id === currentPlayer?.id ? '(Bạn)' : ''}</div>
+                        <div class="player-status">
+                            <div class="status-dot ${player.isOnline ? 'status-online' : 'status-offline'}"></div>
+                            <div class="status-ready">${player.isReady ? '✅ Sẵn sàng' : '⏳ Chờ'}</div>
+                            ${player.id === currentPlayer?.id ? '👑' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Cập nhật trạng thái người chơi
+        function updatePlayerStatus(playerId, isReady) {
+            const items = document.querySelectorAll('.player-item');
+            items.forEach(item => {
+                const nameDiv = item.querySelector('.player-name');
+                if (nameDiv && nameDiv.textContent.includes(playerId)) {
+                    const statusDiv = item.querySelector('.status-ready');
+                    if (statusDiv) {
+                        statusDiv.textContent = isReady ? '✅ Sẵn sàng' : '⏳ Chờ';
+                    }
+                }
+            });
+        }
+        
+        // Cập nhật người chơi trong game
+        function updateGamePlayers(players) {
+            const container = document.getElementById('alivePlayers');
+            let html = '';
+            
+            players.forEach(player => {
+                html += `
+                    <div class="player-item">
+                        <div>
+                            <div class="player-name">${player.name} ${player.id === currentPlayer?.id ? '(Bạn)' : ''}</div>
+                            <div style="font-size: 0.9rem; color: #${player.isAlive ? '4ecdc4' : 'ff6b6b'}">
+                                ${player.isAlive ? '❤️ Sống' : '💀 Đã chết'} - ${getRoleText(player.role)}
+                            </div>
+                        </div>
+                        <div class="player-status">
+                            <div class="status-dot ${player.isAlive ? 'status-online' : 'status-offline'}"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Cập nhật người chơi bị loại
+        function updatePlayerEliminated(playerId) {
+            const items = document.querySelectorAll('.player-item');
+            items.forEach(item => {
+                const nameDiv = item.querySelector('.player-name');
+                if (nameDiv && nameDiv.textContent.includes(playerId)) {
+                    const statusDiv = item.querySelector('.status-dot');
+                    if (statusDiv) {
+                        statusDiv.className = 'status-dot status-offline';
+                    }
+                    const infoDiv = item.querySelector('div > div:nth-child(2)');
+                    if (infoDiv) {
+                        infoDiv.innerHTML = '<span style="color: #ff6b6b">💀 Đã chết</span>';
+                    }
+                }
+            });
+        }
+        
+        // Bắt đầu timer game
+        function startGameTimer(seconds) {
+            let timeLeft = seconds;
+            const timerElement = document.getElementById('timeLeft');
+            
+            const timer = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    timerElement.textContent = 'Hết giờ!';
+                }
+            }, 1000);
+        }
+        
+        // Vote phase
+        function votePhase() {
+            showNotification('🗳️ Tính năng vote đang phát triển...');
+        }
+        
+        // Wolf action
+        function wolfAction() {
+            showNotification('🐺 Tính năng sói đang phát triển...');
+        }
+        
+        // Trả lời câu hỏi
+        function answerQuestion() {
+            document.getElementById('questionSection').classList.remove('hidden');
+            // Trong thực tế, server sẽ gửi câu hỏi qua WebSocket
+            loadSampleQuestion();
+        }
+        
+        // Tải câu hỏi mẫu (tạm thời)
+        function loadSampleQuestion() {
+            const questions = [
+                {
+                    question: "Tác phẩm 'Mộng Đắc Thái Liên' thuộc thể loại nào?",
+                    options: ["Tiểu thuyết", "Truyện ngắn", "Thơ", "Kịch"],
+                    correct: "Tiểu thuyết",
+                    zone: 1
+                },
+                {
+                    question: "Tác giả của 'Mộng Đắc Thái Liên' là ai?",
+                    options: ["Nguyễn Du", "Tào Tuyết Cần", "La Quán Trung", "Thi Nại Am"],
+                    correct: "Tào Tuyết Cần",
+                    zone: 1
+                },
+                {
+                    question: "Nhân vật chính trong 'Mộng Đắc Thái Liên' là ai?",
+                    options: ["Giả Bảo Ngọc", "Lâm Đại Ngọc", "Tiết Bảo Thoa", "Vương Hy Phượng"],
+                    correct: "Giả Bảo Ngọc",
+                    zone: 1
+                }
+            ];
+            
+            const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+            
+            document.getElementById('questionText').textContent = randomQuestion.question;
+            document.getElementById('currentZone').textContent = randomQuestion.zone;
+            document.getElementById('questionNumber').textContent = '1';
+            
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+            
+            randomQuestion.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
+                button.style.marginBottom = '10px';
+                button.style.textAlign = 'left';
+                button.onclick = function() {
+                    // Bỏ chọn các button khác
+                    document.querySelectorAll('#optionsContainer button').forEach(btn => {
+                        btn.style.background = 'rgba(255, 255, 255, 0.1)';
+                    });
+                    // Chọn button này
+                    this.style.background = 'linear-gradient(45deg, #4ecdc4, #44a08d)';
+                    this.dataset.selected = 'true';
+                };
+                optionsContainer.appendChild(button);
+            });
+        }
+        
+        // Gửi câu trả lời
+        function submitAnswer() {
+            const selectedButton = document.querySelector('#optionsContainer button[data-selected="true"]');
+            if (!selectedButton) {
+                showNotification('❌ Vui lòng chọn đáp án');
+                return;
+            }
+            
+            const answer = selectedButton.textContent.substring(3); // Bỏ "A. ", "B. ", etc.
+            
+            // Trong thực tế, gửi qua WebSocket
+            // socket.emit('submit-answer', {
+            //     roomId: currentRoom,
+            //     zone: 1,
+            //     questionIndex: 0,
+            //     answer: answer
+            // });
+            
+            // Tạm thời chỉ hiển thị thông báo
+            showNotification('📤 Đã gửi câu trả lời!');
+            document.getElementById('questionSection').classList.add('hidden');
+        }
+        
+        // Hủy câu hỏi
+        function cancelQuestion() {
+            document.getElementById('questionSection').classList.add('hidden');
+        }
+        
+        // Xem bảng điểm
+        function viewScore() {
+            showNotification('🏆 Tính năng bảng điểm đang phát triển...');
+        }
+        
+        // Hiển thị kết quả game
+        function showGameResults(data) {
+            let html = `
+                <h2>🏆 Kết thúc game!</h2>
+                <div style="font-size: 1.5rem; color: ${data.winner === 'wolves' ? '#ff6b6b' : '#4ecdc4'}; margin: 15px 0;">
+                    ${data.winner === 'wolves' ? '🐺 Ma sói thắng!' : '👨‍🌾 Dân làng thắng!'}
+                </div>
+                <p>Thời gian: ${Math.floor(data.duration / 60)}:${(data.duration % 60).toString().padStart(2, '0')}</p>
+                <h3>Bảng điểm:</h3>
+            `;
+            
+            // Sắp xếp theo điểm
+            data.players.sort((a, b) => b.score - a.score);
+            
+            data.players.forEach((player, index) => {
+                html += `
+                    <div class="player-item">
+                        <div>
+                            <div class="player-name">${index + 1}. ${player.name}</div>
+                            <div style="font-size: 0.9rem; color: #${player.isAlive ? '4ecdc4' : 'ff6b6b'}">
+                                ${getRoleText(player.role)} - ${player.isAlive ? 'Sống' : 'Chết'}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.2rem; font-weight: bold;">${player.score} điểm</div>
+                            <div style="font-size: 0.8rem;">
+                                ${player.kills || 0} kill • ${player.correctAnswers || 0} câu đúng
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                <div style="margin-top: 20px; text-align: center;">
+                    <button onclick="leaveRoom()" style="width: 200px;">Quay về lobby</button>
+                </div>
+            `;
+            
+            document.getElementById('gameSection').innerHTML = html;
+        }
+        
+        // Thêm tin nhắn chat
+        function addMessage(sender, message, timestamp) {
+            const container = document.getElementById('messages');
+            const timeStr = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span class="message-sender">${sender}</span>
+                    <span class="message-time">${timeStr}</span>
+                </div>
+                <div>${message}</div>
+            `;
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Hiển thị thông báo
+        function showNotification(message) {
+            notifications.push(message);
+            
+            // Tạo notification element
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Tự động xóa sau 5 giây
+            setTimeout(() => {
+                notification.remove();
+                notifications = notifications.filter(n => n !== message);
+            }, 5000);
+        }
+        
+        // Hiển thị modal
+        function showModal(title, content) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('notificationModal').classList.remove('hidden');
+        }
+        
+        // Đóng modal
+        function closeModal() {
+            document.getElementById('notificationModal').classList.add('hidden');
+        }
+        
+        // Cập nhật thống kê
+        async function updateStats() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                document.getElementById('onlineCount').textContent = data.connections || 0;
+                
+                // Tải danh sách phòng
+                loadPublicRooms();
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+        
+        // Hàm helper
+        function getRoleText(role) {
+            const roles = {
+                'villager': '👨‍🌾 Dân làng',
+                'wolf': '🐺 Ma sói',
+                'seer': '🔮 Tiên tri',
+                'guardian': '🛡️ Bảo vệ',
+                'hunter': '🏹 Thợ săn'
+            };
+            return roles[role] || role;
+        }
+        
+        function getRoleDescription(role) {
+            const descriptions = {
+                'villager': 'Mục tiêu: Tìm ra ma sói và vote chúng ra khỏi làng.',
+                'wolf': 'Mục tiêu: Giết dân làng mà không bị phát hiện. Có thể chat riêng với sói khác.',
+                'seer': 'Mỗi đêm có thể kiểm tra vai trò của một người chơi.',
+                'guardian': 'Mỗi đêm có thể bảo vệ một người khỏi bị sói cắn.',
+                'hunter': 'Khi chết có thể chọn một người để cùng chết theo.'
+            };
+            return descriptions[role] || '';
+        }
+        
+        function getStatusText(status) {
+            const statuses = {
+                'waiting': '⏳ Chờ người chơi',
+                'playing': '🎮 Đang chơi',
+                'voting': '🗳️ Đang vote',
+                'ended': '🏁 Kết thúc',
+                'paused': '⏸️ Tạm dừng'
+            };
+            return statuses[status] || status;
+        }
+    </script>
+</body>
+</html>
