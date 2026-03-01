@@ -3,1204 +3,484 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ma Sói - Mộng Đắc Thái Liên</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <title>Nguyễn Trãi và tính chính thống nhà Triệu | Sử học Việt Nam</title>
+    <!-- Font & basic styling -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&family=Source+Serif+4:opsz@8..60&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #fff;
-            min-height: 100vh;
-            padding: 20px;
+            font-family: 'Source Serif 4', serif;
+            background-color: #faf9f7;
+            color: #1e1e2a;
+            line-height: 1.7;
+            font-size: 1.05rem;
+            scroll-behavior: smooth;
         }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+
+        h1, h2, h3, .toc-title, .site-header, .section-title, .nav-links {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            letter-spacing: -0.02em;
         }
-        
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
-        
+
         h1 {
-            font-size: 2.5rem;
-            color: #ff6b6b;
-            text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+            font-size: 2.4rem;
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 0.75rem;
+            color: #0b2b40;
         }
-        
-        .subtitle {
-            color: #4ecdc4;
-            font-size: 1.2rem;
-            margin-top: 10px;
+
+        h2 {
+            font-size: 1.9rem;
+            font-weight: 500;
+            margin-top: 2.8rem;
+            margin-bottom: 1.2rem;
+            border-left: 8px solid #b4452b;
+            padding-left: 1.3rem;
+            color: #2c3e4f;
         }
-        
-        .game-container {
+
+        h3 {
+            font-size: 1.4rem;
+            font-weight: 500;
+            margin: 2rem 0 0.8rem 0;
+            color: #3a5264;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 0 25px;
+        }
+
+        /* Header */
+        .site-header {
+            background: #ffffffdd;
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            padding: 1.2rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.02);
+        }
+
+        .header-flex {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 1.4rem;
+            color: #a33d24;
+            text-decoration: none;
+        }
+
+        .subhead {
+            font-size: 0.95rem;
+            color: #4d5f6e;
+            font-style: italic;
+        }
+
+        /* Layout: hai cột (table of contents + content) */
+        .content-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
+            grid-template-columns: 260px 1fr;
+            gap: 3rem;
+            margin-top: 2rem;
+            align-items: start;
         }
-        
-        @media (max-width: 768px) {
-            .game-container {
+
+        /* ToC bên trái */
+        .toc-sidebar {
+            position: sticky;
+            top: 110px;
+            max-height: calc(100vh - 130px);
+            overflow-y: auto;
+            background: #f2efe9;
+            padding: 1.5rem 1.2rem;
+            border-radius: 24px;
+            border: 1px solid #e5ded5;
+            box-shadow: 0 10px 25px -10px rgba(0,0,0,0.1);
+        }
+
+        .toc-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px dashed #b0a28f;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-list li {
+            margin-bottom: 0.7rem;
+        }
+
+        .toc-list a {
+            text-decoration: none;
+            color: #2d4b61;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 450;
+            display: block;
+            padding: 5px 10px;
+            border-radius: 40px;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .toc-list a:hover {
+            background: #fff5ea;
+            border-left-color: #b4452b;
+            color: #141414;
+        }
+
+        .toc-list .toc-h2 {
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .toc-list .toc-h3 {
+            padding-left: 1.8rem;
+            font-size: 0.88rem;
+        }
+
+        /* Nội dung chính */
+        .main-content {
+            background: white;
+            padding: 2.2rem 2.8rem;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px -15px rgba(0,20,30,0.15);
+            border: 1px solid #eee7df;
+            overflow: hidden;
+        }
+
+        blockquote {
+            background: #f5f0ea;
+            border-left: 6px solid #a95238;
+            padding: 1.2rem 2rem;
+            margin: 1.8rem 0;
+            font-style: italic;
+            border-radius: 0 60px 60px 0;
+            color: #2d2d2d;
+            font-size: 1.05rem;
+            box-shadow: inset 0 0 0 1px #e3d9cf;
+        }
+
+        .highlight {
+            background: #fff1cb;
+            padding: 0.2rem 0.4rem;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        th {
+            background: #e7ded3;
+            color: #1f3a4b;
+            font-weight: 600;
+            padding: 12px 10px;
+        }
+
+        td, th {
+            border: 1px solid #d9cfc0;
+            padding: 12px 12px;
+            vertical-align: top;
+        }
+
+        td {
+            background: white;
+        }
+
+        .comparison-table {
+            background: #fcf9f5;
+        }
+
+        .comparison-table td:first-child {
+            font-weight: 600;
+            background: #f3eee8;
+        }
+
+        .insight-badge {
+            display: inline-block;
+            background: #b4452b;
+            color: white;
+            padding: 3px 12px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .footnote {
+            border-top: 1px solid #ddd;
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            color: #5b6f7e;
+            font-size: 0.9rem;
+            text-align: right;
+        }
+
+        /* responsive */
+        @media (max-width: 900px) {
+            .content-grid {
                 grid-template-columns: 1fr;
             }
+            .toc-sidebar {
+                position: relative;
+                top: 0;
+                max-height: none;
+                margin-bottom: 1.5rem;
+            }
+            .main-content {
+                padding: 1.8rem;
+            }
+            h1 { font-size: 2rem; }
         }
-        
-        .section {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+
+        @media (max-width: 500px) {
+            .container { padding: 0 15px; }
+            .main-content { padding: 1.2rem; }
         }
-        
-        .section h2 {
-            color: #4ecdc4;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #4ecdc4;
-            padding-bottom: 10px;
+
+        .timeline-marker {
+            font-weight: 600;
+            color: #a04129;
         }
-        
-        .input-group {
-            margin-bottom: 15px;
-        }
-        
-        input, select, button {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 10px;
+
+        hr.divider {
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #c0ad9a, transparent);
+            margin: 2.5rem 0;
         }
-        
-        input, select {
-            background: rgba(255, 255, 255, 0.1);
+
+        /* nút quay đầu */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #b4452b;
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        input:focus, select:focus {
-            outline: none;
-            border-color: #4ecdc4;
-            box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
-        }
-        
-        button {
-            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
-            color: white;
-            cursor: pointer;
-            font-weight: bold;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
-        }
-        
-        button:active {
-            transform: translateY(0);
-        }
-        
-        .btn-secondary {
-            background: linear-gradient(45deg, #4ecdc4, #44a08d);
-        }
-        
-        .btn-warning {
-            background: linear-gradient(45deg, #ffe66d, #ffd166);
-            color: #333;
-        }
-        
-        .player-list {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 15px;
-        }
-        
-        .player-item {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            margin-bottom: 5px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .player-name {
-            font-weight: bold;
-        }
-        
-        .player-status {
+            width: 45px;
+            height: 45px;
+            border-radius: 30px;
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-        
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-        
-        .status-online {
-            background: #4ecdc4;
-            box-shadow: 0 0 5px #4ecdc4;
-        }
-        
-        .status-offline {
-            background: #ff6b6b;
-        }
-        
-        .status-ready {
-            color: #4ecdc4;
-            font-size: 0.9rem;
-        }
-        
-        .chat-container {
-            grid-column: span 2;
-        }
-        
-        #messages {
-            height: 300px;
-            overflow-y: auto;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .message {
-            margin-bottom: 10px;
-            padding: 8px 12px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.05);
-        }
-        
-        .message-sender {
-            color: #4ecdc4;
-            font-weight: bold;
-        }
-        
-        .message-time {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.8rem;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 107, 107, 0.9);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-            max-width: 300px;
-            animation: slideIn 0.3s ease-out;
-        }
-        
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        
-        .game-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            gap: 15px;
-        }
-        
-        .info-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 10px;
-            flex: 1;
-            text-align: center;
-        }
-        
-        .info-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #ff6b6b;
-            margin-top: 5px;
-        }
-        
-        .role-display {
-            text-align: center;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            margin-bottom: 20px;
-            border: 2px solid transparent;
-        }
-        
-        .role-wolf {
-            border-color: #ff6b6b;
-            background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(0, 0, 0, 0.3));
-        }
-        
-        .role-villager {
-            border-color: #4ecdc4;
-            background: linear-gradient(135deg, rgba(78, 205, 196, 0.1), rgba(0, 0, 0, 0.3));
-        }
-        
-        .role-display h3 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-        }
-        
-        .game-phase {
-            text-align: center;
-            padding: 10px;
-            margin-bottom: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-        
-        .phase-day {
-            color: #ffe66d;
-        }
-        
-        .phase-night {
-            color: #1a1a2e;
-            background: linear-gradient(45deg, #4ecdc4, #44a08d);
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
             justify-content: center;
-            align-items: center;
-            z-index: 1000;
+            text-decoration: none;
+            font-size: 1.5rem;
+            box-shadow: 0 6px 15px #b4452b80;
+            transition: 0.2s;
+            opacity: 0.7;
         }
-        
-        .modal-content {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            border: 2px solid #4ecdc4;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #4ecdc4;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .game-action {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .action-btn {
-            padding: 12px;
-            text-align: center;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        
-        .action-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        
-        .wolf-action {
-            background: linear-gradient(45deg, rgba(255, 107, 107, 0.2), rgba(255, 107, 107, 0.1));
-        }
-        
-        .wolf-action:hover {
-            background: linear-gradient(45deg, rgba(255, 107, 107, 0.3), rgba(255, 107, 107, 0.2));
-        }
+        .back-to-top:hover { opacity: 1; background: #8f321e; }
     </style>
 </head>
 <body>
+    <header class="site-header">
+        <div class="container header-flex">
+            <a href="#" class="logo">⚖️ Biện chứng sử</a>
+            <div class="subhead">Nhà Triệu · Nguyễn Trãi · dòng chảy sử học</div>
+        </div>
+    </header>
+
     <div class="container">
-        <header>
-            <h1>🎮 Ma Sói - Mộng Đắc Thái Liên</h1>
-            <div class="subtitle">Kết hợp trí tuệ văn học và chiến thuật xã hội</div>
-        </header>
-        
-        <div class="game-info" id="gameInfo">
-            <div class="info-card">
-                <div>Người chơi online</div>
-                <div class="info-value" id="onlineCount">0</div>
-            </div>
-            <div class="info-card">
-                <div>Phòng đang chờ</div>
-                <div class="info-value" id="roomCount">0</div>
-            </div>
-            <div class="info-card">
-                <div>Game đang chơi</div>
-                <div class="info-value" id="gameCount">0</div>
-            </div>
+        <div style="margin: 1.5rem 0 0.5rem;">
+            <h1>Biện chứng về tính chính thống của nhà Triệu trong tư tưởng Nguyễn Trãi<br>và sự vận động của sử học Việt Nam</h1>
+            <p style="font-size: 1.2rem; color: #3e5668;">Phân tích từ Bình Ngô đại cáo đến tranh luận hiện đại</p>
         </div>
-        
-        <!-- Phần chọn vai trò và room -->
-        <div id="lobbySection">
-            <div class="game-container">
-                <!-- Tạo phòng -->
-                <div class="section">
-                    <h2>🏠 Tạo Phòng Mới</h2>
-                    <div class="input-group">
-                        <input type="text" id="playerName" placeholder="Tên người chơi" maxlength="20">
-                    </div>
-                    <div class="input-group">
-                        <input type="text" id="roomName" placeholder="Tên phòng (tuỳ chọn)">
-                    </div>
-                    <div class="input-group">
-                        <select id="maxPlayers">
-                            <option value="10">10 người chơi</option>
-                            <option value="15">15 người chơi</option>
-                            <option value="20" selected>20 người chơi</option>
-                            <option value="30">30 người chơi</option>
-                            <option value="50">50 người chơi</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>
-                            <input type="checkbox" id="privateRoom"> Phòng riêng tư
-                        </label>
-                    </div>
-                    <div class="input-group hidden" id="passwordGroup">
-                        <input type="password" id="roomPassword" placeholder="Mật khẩu phòng">
-                    </div>
-                    <button onclick="createRoom()">🎮 Tạo Phòng</button>
+
+        <div class="content-grid">
+            <!-- Mục lục điều hướng -->
+            <aside class="toc-sidebar">
+                <div class="toc-title">📚 Nội dung chính</div>
+                <ul class="toc-list">
+                    <li><a class="toc-h2" href="#boi-canh">1. Bối cảnh & Bình Ngô đại cáo</a></li>
+                    <li><a class="toc-h2" href="#khai-niem-chinh-thong">2. Chính thống phong kiến sơ kỳ</a></li>
+                    <li><a class="toc-h3" href="#le-van-huu">2.1 Lê Văn Hưu</a></li>
+                    <li><a class="toc-h3" href="#ngo-si-lien">2.2 Ngô Sĩ Liên</a></li>
+                    <li><a class="toc-h2" href="#cau-truc-doi-ngau">3. Cấu trúc đối ngẫu & bình đẳng</a></li>
+                    <li><a class="toc-h2" href="#van-hien">4. Khái niệm Văn hiến</a></li>
+                    <li><a class="toc-h2" href="#phan-bien">5. Phản biện Ngô Thì Sĩ</a></li>
+                    <li><a class="toc-h2" href="#nha-nguyen">6. Nhà Nguyễn phủ định</a></li>
+                    <li><a class="toc-h2" href="#tranh-luan-hien-dai">7. Tranh luận 1960–1967</a></li>
+                    <li><a class="toc-h3" href="#phu-dinh">7.1 Phái phủ định</a></li>
+                    <li><a class="toc-h3" href="#xem-xet-lai">7.2 Ý kiến xem xét lại</a></li>
+                    <li><a class="toc-h2" href="#dung-sai">8. Nguyễn Trãi đúng hay sai?</a></li>
+                    <li><a class="toc-h2" href="#tong-ket">9. Tổng kết & đánh giá</a></li>
+                </ul>
+                <div style="margin-top: 2rem; background: #e5dbd1; padding: 0.8rem; border-radius: 16px;">
+                    <span style="font-weight:600;">💡 Gợi ý</span> <span style="font-size:0.9rem;">Nhấn vào đề mục để di chuyển.</span>
                 </div>
-                
-                <!-- Tham gia phòng -->
-                <div class="section">
-                    <h2>🚪 Tham Gia Phòng</h2>
-                    <div class="input-group">
-                        <input type="text" id="joinPlayerName" placeholder="Tên người chơi" maxlength="20">
-                    </div>
-                    <div class="input-group">
-                        <input type="text" id="roomCode" placeholder="Mã phòng (6 ký tự)" maxlength="6" style="text-transform: uppercase">
-                    </div>
-                    <div class="input-group">
-                        <input type="password" id="joinPassword" placeholder="Mật khẩu (nếu có)">
-                    </div>
-                    <button onclick="joinRoom()" class="btn-secondary">🎯 Tham Gia</button>
-                    
-                    <h3 style="margin-top: 20px;">📋 Phòng Công Khai</h3>
-                    <div class="player-list" id="publicRooms">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            Đang tải danh sách phòng...
-                        </div>
-                    </div>
+            </aside>
+
+            <!-- Nội dung bài báo cáo -->
+            <main class="main-content">
+                <!-- Bối cảnh -->
+                <section id="boi-canh">
+                    <h2>Bối cảnh văn bản và tầm vóc Bình Ngô đại cáo</h2>
+                    <p><span class="highlight">"Từ Triệu, Đinh, Lý, Trần bao đời gây nền độc lập"</span> – câu văn trong <em>Bình Ngô đại cáo</em> (1428) không phải ngẫu nhiên. Nguyễn Trãi liệt kê các triều đại nhằm khẳng định chủ quyền song hành với Trung Hoa. Ở thế kỷ XV, mục tiêu là chứng minh Đại Việt có <strong>văn hiến lâu đời, bờ cõi riêng</strong>. Việc đặt Triệu đầu tiên thể hiện tính toán ngoại giao sâu sắc: Triệu Đà từng xưng đế, đối trọng nhà Hán. Sai hay đúng? Phải xét trong hệ quy chiếu phong kiến.</p>
+                </section>
+
+                <!-- Khái niệm chính thống -->
+                <section id="khai-niem-chinh-thong">
+                    <h2>Khái niệm chính thống trong sử học phong kiến sơ kỳ</h2>
+                    <h3 id="le-van-huu">Quan điểm Lê Văn Hưu (Đại Việt sử ký)</h3>
+                    <p>Lê Văn Hưu (thế kỷ XIII) chép nhà Triệu là chính thống, gọi Triệu Vũ Đế, ca ngợi công “khai thác đất Việt, đối ngang nhà Hán”. Ông dùng tiêu chí <strong>“Đức” và thực lực cai trị</strong>, không quan trọng nguồn gốc Hán hay Việt. Với ống, Triệu Đà tượng trưng cho tinh thần độc lập.</p>
+
+                    <h3 id="ngo-si-lien">Ngô Sĩ Liên (Đại Việt sử ký toàn thư)</h3>
+                    <p>Đời Lê sơ, Ngô Sĩ Liên tiếp tục duy trì vị thế nhà Triệu. Các vua Triệu được đặt ngang hàng Đinh, Lý, Trần. Tư duy nhất quán: Triệu là thực thể chính trị riêng, có cương vực, quân đội, đủ tư cách “gây nền độc lập”.</p>
+                </section>
+
+                <hr class="divider">
+
+                <section id="cau-truc-doi-ngau">
+                    <h2>Phân tích cấu trúc đối ngẫu và ý nghĩa bình đẳng quốc gia</h2>
+                    <p>Nguyễn Trãi đặt các triều đại Việt sóng đôi với Hán, Đường, Tống, Nguyên:</p>
+                    <table>
+                        <thead><tr><th>Phương Nam</th><th>Phương Bắc</th><th>Ý nghĩa đối sánh</th></tr></thead>
+                        <tbody>
+                            <tr><td>Triệu (Nam Việt)</td><td>Hán</td><td>Khai nền độc lập, đối trọng đầu tiên với đế chế phương Bắc.</td></tr>
+                            <tr><td>Đinh (Đại Cồ Việt)</td><td>Đường</td><td>Phục hưng tự chủ sau nghìn năm Bắc thuộc.</td></tr>
+                            <tr><td>Lý (Đại Việt)</td><td>Tống</td><td>Củng cố trung ương, bảo vệ biên cương.</td></tr>
+                            <tr><td>Trần (Đại Việt)</td><td>Nguyên</td><td>Đỉnh cao sức mạnh, đánh bại đế chế Mông Cổ.</td></tr>
+                        </tbody>
+                    </table>
+                    <p>Nhà Triệu sánh ngang nhà Hán cho thấy thông điệp “mỗi bên xưng đế một phương” – đòn mạnh vào tư tưởng thiên hạ đại nhất thống. Loại Triệu sẽ mất đi đối trọng lịch sử quan trọng nhất.</p>
+                </section>
+
+                <section id="van-hien">
+                    <h2>Khái niệm Văn hiến và sự xác lập bản sắc dân tộc</h2>
+                    <blockquote>“Vốn xưng nền văn hiến đã lâu” – <em>Bình Ngô đại cáo</em></blockquote>
+                    <p>“Văn hiến” là truyền thống văn hóa, phong tục riêng. Nhà Triệu là cột mốc đầu tiên xác lập ranh giới Nam – Bắc, giúp bản sắc Việt tồn tại thay vì bị đồng hóa. Triệu Đà viết thư xưng “lão phu” với vua Hán là minh chứng cho văn hiến phương Nam.</p>
+                </section>
+
+                <section id="phan-bien">
+                    <h2>Sự phản biện của Ngô Thì Sĩ và bước ngoặt tư duy (cuối XVIII)</h2>
+                    <p>Trong <em>Việt sử tiêu án</em>, Ngô Thì Sĩ phản bác: Triệu Đà là tướng nhà Tần, người Hán, đánh bại An Dương Vương bằng mưu kế, nên là <strong>hành vi xâm lược</strong>. Ông xếp nhà Triệu vào kỷ “Ngoại thuộc”. Sự thay đổi này phản ánh xu hướng ưu tiên <strong>nguồn gốc sắc tộc</strong> hơn là tư thế chính trị.</p>
+                </section>
+
+                <section id="nha-nguyen">
+                    <h2>Nhà Nguyễn và sự phủ định tính chính thống (thế kỷ XIX)</h2>
+                    <p><em>Khâm định Việt sử thông giám cương mục</em> dưới thời Tự Đức chính thức loại nhà Triệu khỏi chính thống. Vua Tự Đức tiếc nuối vì đất đai từ thời Triệu bị Trung Quốc chiếm mất. Sử gia Ngô Thời Sỹ (cùng thời) phê phán Triệu Đà “không để ý đến giáo hóa phong tục”. Nhưng dòng chính thống phong kiến vẫn âm thầm thừa nhận vai trò bảo tồn lãnh thổ của nhà Triệu.</p>
+                </section>
+
+                <section id="tranh-luan-hien-dai">
+                    <h2>Cuộc tranh luận sử học hiện đại tại miền Bắc (1960–1967)</h2>
+                    <h3 id="phu-dinh">Lập luận của phái phủ định (bộ tứ Lâm–Lê–Tấn–Vượng)</h3>
+                    <p>Các sử gia hàng đầu như Phan Huy Lê, Hà Văn Tấn khẳng định: Triệu Đà là tướng nhà Tần, xâm lược nước Âu Lạc, là <strong>kẻ ngoại bang, mở đầu Bắc thuộc</strong>. Quan điểm này phù hợp bối cảnh kháng chiến chống Mỹ, cần đề cao sức mạnh tự thân dân tộc.</p>
+
+                    <h3 id="xem-xet-lai">Những ý kiến đề nghị xem xét lại</h3>
+                    <p>Một số học giả (PGS-TS Trương Sỹ Hùng) cho rằng Triệu Đà đã bị “Việt hóa”, mặc áo quần người Việt, theo phong tục Việt. Trong dân gian, ông vẫn được thờ cúng như vị vua bảo vệ đất nước.</p>
+
+                    <table class="comparison-table">
+                        <thead><tr><th>Quan điểm</th><th>Đại diện</th><th>Đánh giá nhà Triệu</th><th>Cơ sở lý luận</th></tr></thead>
+                        <tbody>
+                            <tr><td>Phong kiến sơ kỳ</td><td>Lê Văn Hưu, Nguyễn Trãi</td><td>Chính thống, khai nền độc lập</td><td>Đức trị, đối ngang nhà Hán</td></tr>
+                            <tr><td>Phong kiến muộn</td><td>Ngô Thì Sĩ, nhà Nguyễn</td><td>Ngoại thuộc, xâm lược</td><td>Nguồn gốc Hán, mất đất</td></tr>
+                            <tr><td>Sử học Mác-xít</td><td>Phan Huy Lê, Hà Văn Tấn</td><td>Kẻ xâm lược, Bắc thuộc</td><td>Chủ quyền bản địa, chống bành trướng</td></tr>
+                            <tr><td>Dân gian / một số học giả</td><td>Trương Sỹ Hùng</td><td>Vị vua bảo vệ cương vực</td><td>Sự Việt hóa, ngăn nhà Hán</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="dung-sai">
+                    <h2>Phân tích tính "sai" hoặc "đúng" của Nguyễn Trãi</h2>
+                    <p><span class="insight-badge">luận giải</span> Dùng tiêu chuẩn hiện đại để phán xét là lỗi phương pháp.</p>
+                    <ul style="margin-left: 2rem;">
+                        <li><strong>Với hệ quy chiếu phong kiến (1428):</strong> Nguyễn Trãi <em>đúng</em> – ông dựa trên Đại Việt sử ký và nhu cầu chính trị: cần một triều đại đối trọng với nhà Hán để khẳng định “văn hiến lâu đời”.</li>
+                        <li><strong>Ý nghĩa chiến lược – ngoại giao:</strong> Nhà Triệu là bằng chứng “quốc thống” liên tục, gửi thông điệp cứng rắn tới nhà Minh.</li>
+                        <li><strong>Chuyển dịch khái niệm:</strong> Nếu phân biệt <em>quốc gia</em> (thực thể độc lập) và <em>dân tộc</em> (người cai trị), Nguyễn Trãi nhấn mạnh quốc gia, nên không sai. Sử học hiện đại nhấn mạnh dân tộc, nên phủ nhận tính chính thống.</li>
+                    </ul>
+                    <p>Nguyễn Trãi đã xây dựng chân lý quốc gia qua không gian (bờ cõi), thời gian (các đời), văn hóa (phong tục) và nhân kiệt. Triệu là tiền đồn đầu tiên của nền độc lập.</p>
+                </section>
+
+                <section id="tong-ket">
+                    <h2>Tổng kết và đánh giá về "sai sót" lịch sử</h2>
+                    <p>Không thể nói Nguyễn Trãi “sai” – ông phản ánh tri thức và nhu cầu thế kỷ XV. Các thế kỷ sau, khi ý thức dân tộc thay đổi, nhà Triệu bị loại khỏi chính thống. Lịch sử là diễn giải, mỗi thời đại có lẽ phải riêng. Bình Ngô đại cáo vẫn là bản hùng ca về ý chí độc lập, dù quan điểm về Triệu có biến thiên.</p>
+                    <p style="margin-top: 1.2rem; background: #eef4f8; border-radius: 24px; padding: 1rem;">⏳ <strong>Giá trị bền vững:</strong> Tác phẩm cho thấy sự trưởng thành của ý thức dân tộc thời Lê sơ; mỗi chữ đều chứa tâm huyết bảo vệ “văn hiến Đại Việt”.</p>
+                </section>
+
+                <div class="footnote">
+                    ✦ Dựa trên bài báo cáo tổng hợp ✦ Các trích dẫn được lược thuật từ nguồn sử liệu và tranh luận học thuật.
                 </div>
-            </div>
-        </div>
-        
-        <!-- Phòng chờ -->
-        <div class="section hidden" id="roomSection">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2>👥 Phòng: <span id="roomTitle"></span></h2>
-                <button onclick="leaveRoom()" class="btn-warning">👋 Rời Phòng</button>
-            </div>
-            
-            <div class="game-info">
-                <div class="info-card">
-                    <div>Mã phòng</div>
-                    <div class="info-value" id="roomCodeDisplay">-</div>
-                </div>
-                <div class="info-card">
-                    <div>Người chơi</div>
-                    <div class="info-value"><span id="currentPlayers">0</span>/<span id="maxPlayersDisplay">0</span></div>
-                </div>
-                <div class="info-card">
-                    <div>Trạng thái</div>
-                    <div class="info-value" id="roomStatus">Chờ</div>
-                </div>
-            </div>
-            
-            <h3>🎮 Người chơi trong phòng</h3>
-            <div class="player-list" id="roomPlayers"></div>
-            
-            <div id="adminControls" class="hidden">
-                <div style="margin-top: 20px; text-align: center;">
-                    <button onclick="startGame()" style="width: 200px; padding: 15px; font-size: 18px;">
-                        🚀 Bắt đầu game
-                    </button>
-                    <p style="margin-top: 10px; color: #ffe66d;">Bạn là chủ phòng!</p>
-                </div>
-            </div>
-            
-            <div id="playerControls" style="margin-top: 20px;">
-                <button onclick="toggleReady()" id="readyButton" style="width: 100%;">
-                    ✅ Bấm để sẵn sàng
-                </button>
-            </div>
-        </div>
-        
-        <!-- Game đang chơi -->
-        <div class="section hidden" id="gameSection">
-            <div class="role-display" id="roleDisplay">
-                <h3>🎭 Vai trò của bạn: <span id="playerRole">Đang chờ...</span></h3>
-                <div id="roleDescription"></div>
-            </div>
-            
-            <div class="game-phase" id="gamePhase">
-                Giai đoạn: <span id="phaseText">Ban ngày</span>
-                <div id="timer">Thời gian: <span id="timeLeft">780</span>s</div>
-            </div>
-            
-            <div class="game-container">
-                <!-- Thông tin game -->
-                <div class="section">
-                    <h2>📊 Thông tin game</h2>
-                    <div id="gameStats">
-                        <div class="player-list" id="alivePlayers"></div>
-                    </div>
-                    
-                    <div class="game-action">
-                        <div class="action-btn" onclick="votePhase()">🗳️ Vote</div>
-                        <div class="action-btn wolf-action hidden" onclick="wolfAction()">🐺 Hành động sói</div>
-                        <div class="action-btn" onclick="answerQuestion()">❓ Trả lời câu hỏi</div>
-                        <div class="action-btn" onclick="viewScore()">🏆 Bảng điểm</div>
-                    </div>
-                </div>
-                
-                <!-- Câu hỏi -->
-                <div class="section hidden" id="questionSection">
-                    <h2>📚 Câu hỏi Mộng Đắc Thái Liên</h2>
-                    <div id="questionInfo">
-                        <p>Khu vực: <span id="currentZone">1</span></p>
-                        <p>Câu: <span id="questionNumber">1</span>/10</p>
-                    </div>
-                    <h3 id="questionText">Câu hỏi đang tải...</h3>
-                    <div id="optionsContainer"></div>
-                    <div style="margin-top: 15px;">
-                        <button onclick="submitAnswer()">📤 Gửi câu trả lời</button>
-                        <button onclick="cancelQuestion()" class="btn-warning" style="margin-top: 10px;">❌ Quay lại</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Chat -->
-        <div class="section chat-container">
-            <h2>💬 Chat</h2>
-            <div id="messages"></div>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <input type="text" id="messageInput" placeholder="Nhập tin nhắn..." style="flex: 1;">
-                <button onclick="sendMessage()" style="width: 100px;">Gửi</button>
-            </div>
+            </main>
         </div>
     </div>
-    
-    <!-- Modal thông báo -->
-    <div id="notificationModal" class="modal hidden">
-        <div class="modal-content">
-            <h2 id="modalTitle">Thông báo</h2>
-            <div id="modalContent"></div>
-            <div style="margin-top: 20px; text-align: center;">
-                <button onclick="closeModal()">Đóng</button>
-            </div>
-        </div>
-    </div>
-    
+
+    <!-- Nút back to top đơn giản -->
+    <a href="#" class="back-to-top" title="Lên đầu trang">↑</a>
+
+    <!-- JavaScript tạo active cho mục lục (không bắt buộc, có thể thêm) -->
     <script>
-        // Biến toàn cục
-        let socket = null;
-        let currentRoom = null;
-        let currentPlayer = null;
-        let gameState = null;
-        let notifications = [];
-        
-        // Kết nối WebSocket khi trang load
-        window.onload = function() {
-            connectSocket();
-            loadPublicRooms();
-            setInterval(updateStats, 5000);
+        (function() {
+            // Làm nổi bật mục tương ứng khi cuộn (tùy chọn)
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('.toc-list a');
             
-            // Hiển thị checkbox password
-            document.getElementById('privateRoom').addEventListener('change', function(e) {
-                document.getElementById('passwordGroup').classList.toggle('hidden', !e.target.checked);
-            });
-        };
-        
-        // Kết nối WebSocket
-        function connectSocket() {
-            socket = io();
-            
-            socket.on('connect', () => {
-                console.log('Đã kết nối đến server');
-                showNotification('✅ Đã kết nối đến server game');
-            });
-            
-            socket.on('disconnect', () => {
-                showNotification('⚠️ Mất kết nối với server. Đang thử kết nối lại...');
-                setTimeout(connectSocket, 3000);
-            });
-            
-            socket.on('room-created', (data) => {
-                currentRoom = data.roomId;
-                currentPlayer = {
-                    id: data.playerId,
-                    isAdmin: data.isAdmin
-                };
-                showNotification(`✅ Đã tạo phòng ${data.roomCode}!`);
-                showRoomSection(data);
-                document.getElementById('roomCodeDisplay').textContent = data.roomCode;
-                document.getElementById('roomTitle').textContent = data.roomCode;
-                updatePlayerList(data.players || []);
-            });
-            
-            socket.on('room-joined', (data) => {
-                currentRoom = data.roomId;
-                currentPlayer = {
-                    id: data.playerId,
-                    isAdmin: data.isAdmin
-                };
-                showNotification(`✅ Đã tham gia phòng ${data.roomCode}!`);
-                showRoomSection(data);
-                document.getElementById('roomCodeDisplay').textContent = data.roomCode;
-                document.getElementById('roomTitle').textContent = data.roomName;
-                document.getElementById('roomStatus').textContent = getStatusText(data.gameStatus);
-                document.getElementById('currentPlayers').textContent = data.players.length;
-                document.getElementById('maxPlayersDisplay').textContent = data.settings.maxPlayers;
-                updatePlayerList(data.players);
-                
-                // Hiển thị controls cho admin
-                if (data.isAdmin) {
-                    document.getElementById('adminControls').classList.remove('hidden');
-                }
-            });
-            
-            socket.on('player-joined', (data) => {
-                showNotification(`👤 ${data.playerName} đã tham gia phòng`);
-                document.getElementById('currentPlayers').textContent = data.totalPlayers;
-                if (data.players) {
-                    updatePlayerList(data.players);
-                }
-            });
-            
-            socket.on('player-left', (data) => {
-                showNotification(`👋 ${data.playerName} đã rời phòng`);
-                document.getElementById('currentPlayers').textContent = 
-                    parseInt(document.getElementById('currentPlayers').textContent) - 1;
-            });
-            
-            socket.on('player-ready-changed', (data) => {
-                showNotification(`${data.playerName} ${data.isReady ? 'đã sẵn sàng' : 'chưa sẵn sàng'}`);
-                updatePlayerStatus(data.playerId, data.isReady);
-            });
-            
-            socket.on('game-started', (data) => {
-                gameState = data;
-                showNotification(`🎮 Game đã bắt đầu! Có ${data.wolfCount} con sói.`);
-                showGameSection();
-                updateGamePlayers(data.players);
-                
-                // Cập nhật vai trò của người chơi
-                const player = data.players.find(p => p.id === currentPlayer.id);
-                if (player) {
-                    document.getElementById('playerRole').textContent = getRoleText(player.role);
-                    document.getElementById('roleDescription').innerHTML = getRoleDescription(player.role);
-                    document.getElementById('roleDisplay').className = `role-display role-${player.role}`;
-                    
-                    // Hiển thị button cho sói
-                    if (player.role === 'wolf') {
-                        document.querySelector('.wolf-action').classList.remove('hidden');
+            function updateActiveLink() {
+                let currentId = '';
+                const scrollPos = window.scrollY + 130; // offset
+
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.offsetHeight;
+                    if (scrollPos >= sectionTop && scrollPos < sectionTop + sectionHeight) {
+                        currentId = section.getAttribute('id');
                     }
-                }
-                
-                // Bắt đầu timer
-                startGameTimer(data.gameDuration);
-            });
-            
-            socket.on('new-message', (data) => {
-                addMessage(data.playerName, data.message, new Date(data.timestamp));
-            });
-            
-            socket.on('player-eliminated', (data) => {
-                showNotification(`💀 ${data.playerName} đã bị loại! (Vai trò: ${getRoleText(data.role)})`);
-                updatePlayerEliminated(data.playerId);
-            });
-            
-            socket.on('game-ended', (data) => {
-                showGameResults(data);
-            });
-            
-            socket.on('answer-correct', (data) => {
-                showNotification(`✅ ${data.playerName} trả lời đúng +${data.points} điểm!`);
-            });
-            
-            socket.on('zone-completed', (data) => {
-                showNotification(`🏆 ${data.playerName} đã hoàn thành khu vực ${data.zone}!`);
-            });
-            
-            socket.on('vote-submitted', (data) => {
-                showNotification(`🗳️ ${data.voterName} đã vote ${data.targetName}`);
-            });
-            
-            socket.on('answer-result', (data) => {
-                if (data.correct) {
-                    showNotification(`✅ Câu trả lời đúng! +${data.points || 10} điểm`);
-                } else {
-                    showNotification(`❌ Sai rồi! Đáp án đúng: ${data.correctAnswer}`);
-                }
-                document.getElementById('questionSection').classList.add('hidden');
-            });
-            
-            socket.on('error', (data) => {
-                showNotification(`❌ Lỗi: ${data.message}`);
-            });
-            
-            socket.on('heartbeat-response', (data) => {
-                // Giữ kết nối
-            });
-            
-            // Gửi heartbeat mỗi 10 giây
-            setInterval(() => {
-                if (socket && socket.connected) {
-                    socket.emit('heartbeat');
-                }
-            }, 10000);
-        }
-        
-        // Tạo phòng
-        function createRoom() {
-            const playerName = document.getElementById('playerName').value.trim();
-            if (!playerName) {
-                showNotification('❌ Vui lòng nhập tên người chơi');
-                return;
-            }
-            
-            const roomName = document.getElementById('roomName').value.trim() || undefined;
-            const maxPlayers = parseInt(document.getElementById('maxPlayers').value);
-            const isPrivate = document.getElementById('privateRoom').checked;
-            const password = document.getElementById('roomPassword').value.trim() || null;
-            
-            const settings = {
-                maxPlayers: maxPlayers,
-                privateRoom: isPrivate,
-                password: isPrivate ? password : null,
-                gameDuration: 780, // 13 phút
-                enableChat: true
-            };
-            
-            socket.emit('create-room', {
-                playerName,
-                roomName,
-                maxPlayers,
-                settings
-            });
-        }
-        
-        // Tham gia phòng
-        function joinRoom() {
-            const playerName = document.getElementById('joinPlayerName').value.trim();
-            const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
-            const password = document.getElementById('joinPassword').value.trim() || null;
-            
-            if (!playerName) {
-                showNotification('❌ Vui lòng nhập tên người chơi');
-                return;
-            }
-            
-            if (!roomCode || roomCode.length !== 6) {
-                showNotification('❌ Mã phòng phải có 6 ký tự');
-                return;
-            }
-            
-            socket.emit('join-room', {
-                roomCode,
-                playerName,
-                password
-            });
-        }
-        
-        // Rời phòng
-        function leaveRoom() {
-            if (currentRoom) {
-                socket.emit('leave-room', { roomId: currentRoom });
-                currentRoom = null;
-                currentPlayer = null;
-                document.getElementById('lobbySection').classList.remove('hidden');
-                document.getElementById('roomSection').classList.add('hidden');
-                document.getElementById('gameSection').classList.add('hidden');
-                showNotification('👋 Đã rời phòng');
-                loadPublicRooms();
-            }
-        }
-        
-        // Bắt đầu game (admin only)
-        function startGame() {
-            if (currentRoom && currentPlayer.isAdmin) {
-                socket.emit('start-game', { roomId: currentRoom });
-            }
-        }
-        
-        // Toggle ready status
-        function toggleReady() {
-            if (currentRoom) {
-                socket.emit('toggle-ready', { roomId: currentRoom });
-                const button = document.getElementById('readyButton');
-                const isReady = button.textContent.includes('Chưa sẵn sàng');
-                button.textContent = isReady ? '✅ Bấm để sẵn sàng' : '✅ Đã sẵn sàng';
-                button.style.background = isReady ? 
-                    'linear-gradient(45deg, #ff6b6b, #ff8e53)' : 
-                    'linear-gradient(45deg, #4ecdc4, #44a08d)';
-            }
-        }
-        
-        // Gửi tin nhắn chat
-        function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
-            
-            if (message && currentRoom) {
-                socket.emit('send-message', {
-                    roomId: currentRoom,
-                    message: message
                 });
-                input.value = '';
-            }
-        }
-        
-        // Tải danh sách phòng công khai
-        async function loadPublicRooms() {
-            try {
-                const response = await fetch('/api/rooms');
-                const rooms = await response.json();
-                
-                const container = document.getElementById('publicRooms');
-                if (rooms.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #888;">Chưa có phòng nào</p>';
-                    return;
-                }
-                
-                let html = '';
-                rooms.forEach(room => {
-                    html += `
-                        <div class="player-item" onclick="joinRoomFromList('${room.code}')">
-                            <div>
-                                <div class="player-name">${room.name}</div>
-                                <div style="font-size: 0.9rem; color: #4ecdc4;">Mã: ${room.code}</div>
-                            </div>
-                            <div>
-                                <div style="text-align: right;">${room.players}/${room.maxPlayers} người</div>
-                                <div style="font-size: 0.8rem; color: #ffe66d;">${room.players >= 5 ? '🟢 Có thể chơi' : '🟡 Đang chờ'}</div>
-                            </div>
-                        </div>
-                    `;
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active-toc');
+                    link.style.backgroundColor = '';
+                    link.style.fontWeight = '';
+                    if (link.getAttribute('href') === '#' + currentId) {
+                        link.classList.add('active-toc');
+                        link.style.backgroundColor = '#f2ddd0';
+                        link.style.fontWeight = '550';
+                    }
                 });
-                
-                container.innerHTML = html;
-            } catch (error) {
-                console.error('Error loading rooms:', error);
             }
-        }
-        
-        // Tham gia phòng từ danh sách
-        function joinRoomFromList(roomCode) {
-            document.getElementById('roomCode').value = roomCode;
-            document.getElementById('joinPlayerName').focus();
-        }
-        
-        // Hiển thị section phòng
-        function showRoomSection(data) {
-            document.getElementById('lobbySection').classList.add('hidden');
-            document.getElementById('roomSection').classList.remove('hidden');
-            document.getElementById('gameSection').classList.add('hidden');
-        }
-        
-        // Hiển thị section game
-        function showGameSection() {
-            document.getElementById('lobbySection').classList.add('hidden');
-            document.getElementById('roomSection').classList.add('hidden');
-            document.getElementById('gameSection').classList.remove('hidden');
-        }
-        
-        // Cập nhật danh sách người chơi
-        function updatePlayerList(players) {
-            const container = document.getElementById('roomPlayers');
-            let html = '';
-            
-            players.forEach(player => {
-                html += `
-                    <div class="player-item">
-                        <div class="player-name">${player.name} ${player.id === currentPlayer?.id ? '(Bạn)' : ''}</div>
-                        <div class="player-status">
-                            <div class="status-dot ${player.isOnline ? 'status-online' : 'status-offline'}"></div>
-                            <div class="status-ready">${player.isReady ? '✅ Sẵn sàng' : '⏳ Chờ'}</div>
-                            ${player.id === currentPlayer?.id ? '👑' : ''}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-        
-        // Cập nhật trạng thái người chơi
-        function updatePlayerStatus(playerId, isReady) {
-            const items = document.querySelectorAll('.player-item');
-            items.forEach(item => {
-                const nameDiv = item.querySelector('.player-name');
-                if (nameDiv && nameDiv.textContent.includes(playerId)) {
-                    const statusDiv = item.querySelector('.status-ready');
-                    if (statusDiv) {
-                        statusDiv.textContent = isReady ? '✅ Sẵn sàng' : '⏳ Chờ';
-                    }
-                }
-            });
-        }
-        
-        // Cập nhật người chơi trong game
-        function updateGamePlayers(players) {
-            const container = document.getElementById('alivePlayers');
-            let html = '';
-            
-            players.forEach(player => {
-                html += `
-                    <div class="player-item">
-                        <div>
-                            <div class="player-name">${player.name} ${player.id === currentPlayer?.id ? '(Bạn)' : ''}</div>
-                            <div style="font-size: 0.9rem; color: #${player.isAlive ? '4ecdc4' : 'ff6b6b'}">
-                                ${player.isAlive ? '❤️ Sống' : '💀 Đã chết'} - ${getRoleText(player.role)}
-                            </div>
-                        </div>
-                        <div class="player-status">
-                            <div class="status-dot ${player.isAlive ? 'status-online' : 'status-offline'}"></div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-        
-        // Cập nhật người chơi bị loại
-        function updatePlayerEliminated(playerId) {
-            const items = document.querySelectorAll('.player-item');
-            items.forEach(item => {
-                const nameDiv = item.querySelector('.player-name');
-                if (nameDiv && nameDiv.textContent.includes(playerId)) {
-                    const statusDiv = item.querySelector('.status-dot');
-                    if (statusDiv) {
-                        statusDiv.className = 'status-dot status-offline';
-                    }
-                    const infoDiv = item.querySelector('div > div:nth-child(2)');
-                    if (infoDiv) {
-                        infoDiv.innerHTML = '<span style="color: #ff6b6b">💀 Đã chết</span>';
-                    }
-                }
-            });
-        }
-        
-        // Bắt đầu timer game
-        function startGameTimer(seconds) {
-            let timeLeft = seconds;
-            const timerElement = document.getElementById('timeLeft');
-            
-            const timer = setInterval(() => {
-                timeLeft--;
-                timerElement.textContent = timeLeft;
-                
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    timerElement.textContent = 'Hết giờ!';
-                }
-            }, 1000);
-        }
-        
-        // Vote phase
-        function votePhase() {
-            showNotification('🗳️ Tính năng vote đang phát triển...');
-        }
-        
-        // Wolf action
-        function wolfAction() {
-            showNotification('🐺 Tính năng sói đang phát triển...');
-        }
-        
-        // Trả lời câu hỏi
-        function answerQuestion() {
-            document.getElementById('questionSection').classList.remove('hidden');
-            // Trong thực tế, server sẽ gửi câu hỏi qua WebSocket
-            loadSampleQuestion();
-        }
-        
-        // Tải câu hỏi mẫu (tạm thời)
-        function loadSampleQuestion() {
-            const questions = [
-                {
-                    question: "Tác phẩm 'Mộng Đắc Thái Liên' thuộc thể loại nào?",
-                    options: ["Tiểu thuyết", "Truyện ngắn", "Thơ", "Kịch"],
-                    correct: "Tiểu thuyết",
-                    zone: 1
-                },
-                {
-                    question: "Tác giả của 'Mộng Đắc Thái Liên' là ai?",
-                    options: ["Nguyễn Du", "Tào Tuyết Cần", "La Quán Trung", "Thi Nại Am"],
-                    correct: "Tào Tuyết Cần",
-                    zone: 1
-                },
-                {
-                    question: "Nhân vật chính trong 'Mộng Đắc Thái Liên' là ai?",
-                    options: ["Giả Bảo Ngọc", "Lâm Đại Ngọc", "Tiết Bảo Thoa", "Vương Hy Phượng"],
-                    correct: "Giả Bảo Ngọc",
-                    zone: 1
-                }
-            ];
-            
-            const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
-            
-            document.getElementById('questionText').textContent = randomQuestion.question;
-            document.getElementById('currentZone').textContent = randomQuestion.zone;
-            document.getElementById('questionNumber').textContent = '1';
-            
-            const optionsContainer = document.getElementById('optionsContainer');
-            optionsContainer.innerHTML = '';
-            
-            randomQuestion.options.forEach((option, index) => {
-                const button = document.createElement('button');
-                button.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
-                button.style.marginBottom = '10px';
-                button.style.textAlign = 'left';
-                button.onclick = function() {
-                    // Bỏ chọn các button khác
-                    document.querySelectorAll('#optionsContainer button').forEach(btn => {
-                        btn.style.background = 'rgba(255, 255, 255, 0.1)';
-                    });
-                    // Chọn button này
-                    this.style.background = 'linear-gradient(45deg, #4ecdc4, #44a08d)';
-                    this.dataset.selected = 'true';
-                };
-                optionsContainer.appendChild(button);
-            });
-        }
-        
-        // Gửi câu trả lời
-        function submitAnswer() {
-            const selectedButton = document.querySelector('#optionsContainer button[data-selected="true"]');
-            if (!selectedButton) {
-                showNotification('❌ Vui lòng chọn đáp án');
-                return;
-            }
-            
-            const answer = selectedButton.textContent.substring(3); // Bỏ "A. ", "B. ", etc.
-            
-            // Trong thực tế, gửi qua WebSocket
-            // socket.emit('submit-answer', {
-            //     roomId: currentRoom,
-            //     zone: 1,
-            //     questionIndex: 0,
-            //     answer: answer
-            // });
-            
-            // Tạm thời chỉ hiển thị thông báo
-            showNotification('📤 Đã gửi câu trả lời!');
-            document.getElementById('questionSection').classList.add('hidden');
-        }
-        
-        // Hủy câu hỏi
-        function cancelQuestion() {
-            document.getElementById('questionSection').classList.add('hidden');
-        }
-        
-        // Xem bảng điểm
-        function viewScore() {
-            showNotification('🏆 Tính năng bảng điểm đang phát triển...');
-        }
-        
-        // Hiển thị kết quả game
-        function showGameResults(data) {
-            let html = `
-                <h2>🏆 Kết thúc game!</h2>
-                <div style="font-size: 1.5rem; color: ${data.winner === 'wolves' ? '#ff6b6b' : '#4ecdc4'}; margin: 15px 0;">
-                    ${data.winner === 'wolves' ? '🐺 Ma sói thắng!' : '👨‍🌾 Dân làng thắng!'}
-                </div>
-                <p>Thời gian: ${Math.floor(data.duration / 60)}:${(data.duration % 60).toString().padStart(2, '0')}</p>
-                <h3>Bảng điểm:</h3>
-            `;
-            
-            // Sắp xếp theo điểm
-            data.players.sort((a, b) => b.score - a.score);
-            
-            data.players.forEach((player, index) => {
-                html += `
-                    <div class="player-item">
-                        <div>
-                            <div class="player-name">${index + 1}. ${player.name}</div>
-                            <div style="font-size: 0.9rem; color: #${player.isAlive ? '4ecdc4' : 'ff6b6b'}">
-                                ${getRoleText(player.role)} - ${player.isAlive ? 'Sống' : 'Chết'}
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 1.2rem; font-weight: bold;">${player.score} điểm</div>
-                            <div style="font-size: 0.8rem;">
-                                ${player.kills || 0} kill • ${player.correctAnswers || 0} câu đúng
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `
-                <div style="margin-top: 20px; text-align: center;">
-                    <button onclick="leaveRoom()" style="width: 200px;">Quay về lobby</button>
-                </div>
-            `;
-            
-            document.getElementById('gameSection').innerHTML = html;
-        }
-        
-        // Thêm tin nhắn chat
-        function addMessage(sender, message, timestamp) {
-            const container = document.getElementById('messages');
-            const timeStr = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message';
-            messageDiv.innerHTML = `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <span class="message-sender">${sender}</span>
-                    <span class="message-time">${timeStr}</span>
-                </div>
-                <div>${message}</div>
-            `;
-            
-            container.appendChild(messageDiv);
-            container.scrollTop = container.scrollHeight;
-        }
-        
-        // Hiển thị thông báo
-        function showNotification(message) {
-            notifications.push(message);
-            
-            // Tạo notification element
-            const notification = document.createElement('div');
-            notification.className = 'notification';
-            notification.textContent = message;
-            
-            document.body.appendChild(notification);
-            
-            // Tự động xóa sau 5 giây
-            setTimeout(() => {
-                notification.remove();
-                notifications = notifications.filter(n => n !== message);
-            }, 5000);
-        }
-        
-        // Hiển thị modal
-        function showModal(title, content) {
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalContent').innerHTML = content;
-            document.getElementById('notificationModal').classList.remove('hidden');
-        }
-        
-        // Đóng modal
-        function closeModal() {
-            document.getElementById('notificationModal').classList.add('hidden');
-        }
-        
-        // Cập nhật thống kê
-        async function updateStats() {
-            try {
-                const response = await fetch('/health');
-                const data = await response.json();
-                
-                document.getElementById('onlineCount').textContent = data.connections || 0;
-                
-                // Tải danh sách phòng
-                loadPublicRooms();
-            } catch (error) {
-                console.error('Error updating stats:', error);
-            }
-        }
-        
-        // Hàm helper
-        function getRoleText(role) {
-            const roles = {
-                'villager': '👨‍🌾 Dân làng',
-                'wolf': '🐺 Ma sói',
-                'seer': '🔮 Tiên tri',
-                'guardian': '🛡️ Bảo vệ',
-                'hunter': '🏹 Thợ săn'
-            };
-            return roles[role] || role;
-        }
-        
-        function getRoleDescription(role) {
-            const descriptions = {
-                'villager': 'Mục tiêu: Tìm ra ma sói và vote chúng ra khỏi làng.',
-                'wolf': 'Mục tiêu: Giết dân làng mà không bị phát hiện. Có thể chat riêng với sói khác.',
-                'seer': 'Mỗi đêm có thể kiểm tra vai trò của một người chơi.',
-                'guardian': 'Mỗi đêm có thể bảo vệ một người khỏi bị sói cắn.',
-                'hunter': 'Khi chết có thể chọn một người để cùng chết theo.'
-            };
-            return descriptions[role] || '';
-        }
-        
-        function getStatusText(status) {
-            const statuses = {
-                'waiting': '⏳ Chờ người chơi',
-                'playing': '🎮 Đang chơi',
-                'voting': '🗳️ Đang vote',
-                'ended': '🏁 Kết thúc',
-                'paused': '⏸️ Tạm dừng'
-            };
-            return statuses[status] || status;
-        }
+
+            window.addEventListener('scroll', updateActiveLink);
+            window.addEventListener('load', updateActiveLink);
+        })();
     </script>
+    <style>
+        .toc-list a.active-toc {
+            background: #e4cdbb;
+            border-left: 3px solid #b4452b;
+            font-weight: 550;
+        }
+    </style>
 </body>
 </html>
