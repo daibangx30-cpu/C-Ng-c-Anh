@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tính chính thống nhà Triệu & tư tưởng Nguyễn Trãi</title>
+    <title>Tính chính thống nhà Triệu & tư tưởng của Nguyễn Trãi</title>
     <!-- Fonts & styling -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,13 +14,34 @@
             padding: 0;
             box-sizing: border-box;
         }
+        :root {
+            --bg: #fcf9f5;
+            --surface: #ffffff;
+            --surface-soft: #f2ede5;
+            --text: #1e1e2a;
+            --accent: #b4452b;
+            --accent-dark: #8f321e;
+            --accent-soft: #f7e1d3;
+        }
         body {
             font-family: 'Source Serif 4', serif;
             background-color: #fcf9f5;
             color: #1e1e2a;
+            background: radial-gradient(circle at top right, #fff6ef, var(--bg) 35%);
+            color: var(--text);
             line-height: 1.7;
             font-size: 1.05rem;
             scroll-behavior: smooth;
+        }
+        body.dark-mode {
+            --bg: #14171f;
+            --surface: #1d2330;
+            --surface-soft: #242d3d;
+            --text: #f2f4fb;
+            --accent: #ff9966;
+            --accent-dark: #ff7f4d;
+            --accent-soft: #3a4459;
+            background: radial-gradient(circle at top right, #242b3a, var(--bg) 40%);
         }
         h1, h2, h3, .toc-title, .site-header {
             font-family: 'Inter', sans-serif;
@@ -54,8 +75,19 @@
             margin: 0 auto;
             padding: 0 25px;
         }
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 4px;
+            background: linear-gradient(90deg, #ff8c4d, var(--accent));
+            z-index: 120;
+            transition: width 0.15s linear;
+        }
         .site-header {
             background: rgba(255,255,255,0.9);
+            background: color-mix(in srgb, var(--surface) 88%, transparent);
             backdrop-filter: blur(6px);
             border-bottom: 1px solid #eee5db;
             padding: 1rem 0;
@@ -74,6 +106,25 @@
             color: #a33d24;
             text-decoration: none;
         }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .theme-toggle {
+            border: 1px solid #d5c4b4;
+            background: var(--surface);
+            color: #2f4858;
+            border-radius: 999px;
+            padding: 0.45rem 0.9rem;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: 0.2s;
+        }
+        .theme-toggle:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px -10px #00000070;
+        }
         .nav-links a {
             margin-left: 2rem;
             text-decoration: none;
@@ -91,12 +142,35 @@
             margin-top: 2rem;
             align-items: start;
         }
+        .hero-banner {
+            margin: 1.5rem 0 1rem;
+            padding: 1.3rem 1.4rem;
+            border-radius: 26px;
+            background: linear-gradient(120deg, #fff3e8, #f3f6ff);
+            border: 1px solid #ead8c8;
+            box-shadow: 0 16px 30px -24px #5f4c3d;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem 1.6rem;
+            align-items: center;
+        }
+        .hero-stat {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            color: #3d5268;
+        }
+        .hero-stat strong {
+            display: block;
+            font-size: 1.2rem;
+            color: #23384b;
+        }
         .toc-sidebar {
             position: sticky;
             top: 110px;
             max-height: calc(100vh - 130px);
             overflow-y: auto;
             background: #f2ede5;
+            background: var(--surface-soft);
             padding: 1.5rem 1.2rem;
             border-radius: 24px;
             border: 1px solid #e2d6c9;
@@ -141,6 +215,7 @@
         }
         .main-content {
             background: white;
+            background: var(--surface);
             padding: 2.2rem 2.8rem;
             border-radius: 32px;
             box-shadow: 0 20px 40px -15px rgba(0,20,30,0.15);
@@ -194,6 +269,9 @@
             justify-content: center;
         }
         .image-card {
+            position: relative;
+            cursor: zoom-in;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
             flex: 1 1 280px;
             background: #f9f5f0;
             border-radius: 24px;
@@ -201,11 +279,19 @@
             box-shadow: 0 10px 25px -10px rgba(0,0,0,0.2);
             border: 1px solid #e0d3c4;
         }
+        .image-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 30px -18px rgba(0,0,0,0.45);
+        }
         .image-card img {
             width: 100%;
             height: 200px;
             object-fit: cover;
             display: block;
+            transition: transform 0.35s ease;
+        }
+        .image-card:hover img {
+            transform: scale(1.05);
         }
         .image-card .caption {
             padding: 0.8rem 1rem;
@@ -291,21 +377,66 @@
             opacity: 0.8;
             z-index: 99;
         }
-        .back-to-top:hover { opacity: 1; background: #8f321e; }
+        .back-to-top:hover { opacity: 1; background: var(--accent-dark); }
+        .toc-list a.active {
+            background: var(--accent-soft);
+            border-left-color: var(--accent);
+            font-weight: 600;
+        }
+        .reveal {
+            opacity: 0;
+            transform: translateY(18px);
+            transition: opacity 0.45s ease, transform 0.45s ease;
+        }
+        .reveal.in-view {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.82);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 1rem;
+        }
+        .lightbox.open { display: flex; }
+        .lightbox img {
+            max-width: min(100%, 1050px);
+            max-height: 82vh;
+            border-radius: 18px;
+            box-shadow: 0 16px 40px #000;
+        }
+        .lightbox .close {
+            position: absolute;
+            top: 20px;
+            right: 28px;
+            color: #fff;
+            font-size: 2rem;
+            cursor: pointer;
+        }
         @media (max-width: 900px) {
             .content-grid { grid-template-columns: 1fr; }
             .toc-sidebar { position: relative; top: 0; max-height: none; }
             .main-content { padding: 1.5rem; }
+            .header-actions { gap: 0.5rem; }
+            .nav-links a { margin-left: 0.8rem; }
             h1 { font-size: 2rem; }
         }
     </style>
 </head>
 <body>
+    <div class="progress-bar" id="reading-progress"></div>
     <header class="site-header">
         <div class="container header-flex">
-            <a href="#" class="logo"> Nhà Triệu và tính chính thốngtrong lịch sử </a>
-            <div class="nav-links">
-                <a href="#video-tham-khao">📺 Video tham khảo</a>
+            <a href="#" class="logo"> Nhà Triệu và tính chính thống trong lịch sử</a>
+            <div class="header-actions">
+                <div class="nav-links">
+                    <a href="#video-tham-khao">📺 Video tham khảo</a>
+                </div>
+                <button class="theme-toggle" id="theme-toggle" aria-label="Đổi giao diện">🌙 Tối</button>
             </div>
         </div>
     </header>
@@ -314,6 +445,12 @@
         <div style="margin: 1.5rem 0 0.5rem;">
             <h1>Tính chính thống của nhà Triệu trong tiến trình lịch sử và tư tưởng Nguyễn Trãi qua Bình Ngô đại cáo</h1>
         </div>
+
+        <section class="hero-banner">
+            <div class="hero-stat"><strong>2 góc nhìn</strong>Sử học phong kiến và hiện đại</div>
+            <div class="hero-stat"><strong>13 nguồn</strong>Tổng hợp trích dẫn đa chiều</div>
+            <div class="hero-stat"><strong>Tương tác mới</strong>Phóng to ảnh, highlight mục lục, chế độ tối</div>
+        </section>
 
         <div class="content-grid">
             <!-- MỤC LỤC -->
@@ -341,7 +478,7 @@
                 </ul>
             </aside>
 
-            <!-- NỘI DUNG CHÍNH - BÀI BÁO CÁO CỦA BẠN -->
+            <!-- NỘI DUNG CHÍNH -->
             <main class="main-content">
                 <!-- Mở đầu -->
                 <section id="mo-dau">
@@ -568,7 +705,7 @@
                         <div class="video-card">
                             <a href="https://www.tiktok.com/@hiep_lichsu2087/video/7449940835099020561?q=tri%E1%BB%81u%20%C4%91%E1%BA%A1i%20nh%C3%A0%20tri%E1%BB%87u&t=1772379135164" target="_blank">
                                 <span class="platform-icon">TikTok</span>
-                                <strong>Hiệp Lịch sử – Nhà Triệu và những góc khuất</strong>
+                                <strong> Lịch sử – Nhà Triệu và những góc khuất</strong>
                                 <p>Tổng quan các quan điểm sử học.</p>
                             </a>
                         </div>
@@ -577,12 +714,85 @@
                 </section>
 
                 <div class="footnote">
-                    Trang web trình bày lại toàn bộ bài báo cáo gốc. Ảnh minh họa mang tính tượng trưng.
+                    bài phân tích của nhóm 3
                 </div>
             </main>
         </div>
     </div>
 
     <a href="#" class="back-to-top">↑</a>
+
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh phóng to">
+        <span class="close" id="lightbox-close">×</span>
+        <img src="" alt="Ảnh phóng to" id="lightbox-image">
+    </div>
+    <script>
+        const progress = document.getElementById('reading-progress');
+        const tocLinks = [...document.querySelectorAll('.toc-list a')];
+        const sections = tocLinks
+            .map(link => document.querySelector(link.getAttribute('href')))
+            .filter(Boolean);
+
+        const updateProgress = () => {
+            const scrollTop = window.scrollY;
+            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+            const ratio = maxScroll > 0 ? (scrollTop / maxScroll) * 100 : 0;
+            progress.style.width = `${Math.min(ratio, 100)}%`;
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-view');
+                }
+            });
+        }, { threshold: 0.12 });
+
+        document.querySelectorAll('section, .image-card, .video-card').forEach(el => {
+            el.classList.add('reveal');
+            observer.observe(el);
+        });
+
+        const sectionObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const id = entry.target.id;
+                const current = tocLinks.find(link => link.getAttribute('href') === `#${id}`);
+                if (entry.isIntersecting && current) {
+                    tocLinks.forEach(link => link.classList.remove('active'));
+                    current.classList.add('active');
+                }
+            });
+        }, { rootMargin: '-35% 0px -45% 0px', threshold: 0 });
+        sections.forEach(sec => sectionObserver.observe(sec));
+
+        window.addEventListener('scroll', updateProgress, { passive: true });
+        updateProgress();
+
+        const toggle = document.getElementById('theme-toggle');
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const dark = document.body.classList.contains('dark-mode');
+            toggle.textContent = dark ? 'chế độ Sáng' : 'chế độ Tối';
+        });
+
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImage = document.getElementById('lightbox-image');
+        const closeBtn = document.getElementById('lightbox-close');
+        document.querySelectorAll('.image-card img').forEach(img => {
+            img.addEventListener('click', () => {
+                lightboxImage.src = img.src;
+                lightboxImage.alt = img.alt;
+                lightbox.classList.add('open');
+            });
+        });
+        const closeLightbox = () => lightbox.classList.remove('open');
+        closeBtn.addEventListener('click', closeLightbox);
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) closeLightbox();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
+        });
+    </script>
 </body>
 </html>
