@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>ĐẤU TRƯỜNG NGỮ VĂN - CUỘC ĐUA GIỮA BA TỔ</title>
+    <title>ĐẤU TRƯỜNG NGỮ VĂN - BA TỔ TRANH TÀI</title>
     <style>
         * {
             box-sizing: border-box;
-            user-select: none; /* slightly nicer for kiosk style */
+            user-select: none;
         }
 
         body {
-            font-family: 'Segoe UI', 'Poppins', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', 'Poppins', 'Be Vietnam Pro', system-ui, sans-serif;
             background: linear-gradient(145deg, #1e3c2c 0%, #0f2a1c 100%);
             margin: 0;
             min-height: 100vh;
@@ -21,7 +21,6 @@
             align-items: center;
         }
 
-        /* Game container */
         .game-container {
             max-width: 1500px;
             width: 100%;
@@ -29,11 +28,8 @@
             border-radius: 64px 64px 48px 48px;
             box-shadow: 0 25px 40px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,200,0.6);
             overflow: hidden;
-            backdrop-filter: blur(1px);
-            transition: all 0.2s;
         }
 
-        /* Header */
         .game-header {
             background: #ffcd7e;
             padding: 20px 30px;
@@ -58,14 +54,12 @@
             color: #3a2a1f;
         }
 
-        /* Scoreboard - 3 tổ */
         .scoreboard {
             display: flex;
             flex-wrap: wrap;
             justify-content: space-evenly;
             gap: 15px;
             padding: 25px 20px;
-            background: #2b2b1f;
             background: linear-gradient(112deg, #2d3422, #1e2418);
         }
 
@@ -77,7 +71,7 @@
             padding: 15px 10px;
             text-align: center;
             box-shadow: 0 12px 15px -5px rgba(0,0,0,0.5);
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s;
             border: 2px solid #ffcf7a;
         }
 
@@ -121,7 +115,6 @@
             display: inline-block;
         }
 
-        /* Main arena */
         .arena {
             padding: 25px 30px;
             background: #faf1df;
@@ -173,7 +166,6 @@
             font-weight: bold;
         }
 
-        /* Control zone */
         .controls {
             background: #e7dbbc;
             border-radius: 48px;
@@ -217,19 +209,20 @@
             box-shadow: 0 3px 0 #732c0c;
         }
 
-        .btn-special {
-            background: #6f4f1c;
-            color: #ffdd99;
-            box-shadow: 0 3px 0 #392a12;
+        .btn-answer {
+            background: #4f6d2e;
+            color: #ffefcf;
+            box-shadow: 0 3px 0 #2a3a1a;
         }
 
-        .answer-key {
+        .answer-reveal {
             background: #e6d8bd;
             margin-top: 20px;
             border-radius: 32px;
             padding: 12px 18px;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             border-left: 6px solid #b97f2e;
+            display: none;
         }
 
         .log-area {
@@ -283,18 +276,15 @@
 <div class="game-container">
     <div class="game-header">
         <h1>🏆 ĐẤU TRƯỜNG VĂN CHƯƠNG 🏆</h1>
-        <p>⚡ Ba tỉnh thành tranh tài · Quản trò tối thượng ⚡</p>
+        <p>⚡ Ba tổ so tài · Quản trò điều khiển · Câu hỏi luân phiên ⚡</p>
     </div>
 
-    <!-- 3 đội -->
-    <div class="scoreboard" id="scoreboard">
-        <!-- JS sẽ fill động nhưng viết sẵn cấu trúc -->
-    </div>
+    <div class="scoreboard" id="scoreboard"></div>
 
     <div class="arena">
         <div class="question-panel">
             <div class="question-text" id="questionText">
-                🌟 Nhấn "BẮT ĐẦU TRÒ CHƠI" hoặc "CÂU HỎI TIẾP" để khởi động!
+                🌟 Nhấn "CÂU HỎI TIẾP" để bắt đầu vòng chơi!
             </div>
             <div class="timer-area">
                 <div class="timer-box">⏱️ <span id="timerDisplay">00</span> s</div>
@@ -311,23 +301,23 @@
                 <button id="awardPointsBtn">➕ THƯỞNG</button>
             </div>
             <button id="penaltyBtn" class="btn-danger">⚡ TRỪ ĐIỂM (10)</button>
-            <button id="randomEventBtn" class="btn-special">🎲 SỰ KIỆN MAY MẮN</button>
+            <button id="revealAnswerBtn" class="btn-answer">🔍 HIỆN ĐÁP ÁN GỢI Ý</button>
             <button id="resetGameBtn">🔄 RESET GAME</button>
         </div>
 
-        <!-- Khu vực hiển thị đáp án tham khảo cho quản trò -->
-        <div class="answer-key" id="answerKeyArea">
-            💡 <strong>ĐÁP ÁN GỢI Ý (cho quản trò):</strong><br>
+        <!-- Khu vực hiển thị đáp án gợi ý (ẩn ban đầu) -->
+        <div class="answer-reveal" id="answerRevealArea">
+            💡 <strong>ĐÁP ÁN GỢI Ý:</strong><br>
             Chưa có câu hỏi nào được chọn.
         </div>
 
         <div class="log-area" id="logArea">
             🎤 Chào mừng! Quản trò điều khiển trò chơi, 3 tổ sẵn sàng. <br>
-            ▶ Các câu hỏi sẽ lần lượt đến từng tổ theo vòng tròn. <br>
-            💡 Hãy dùng nút "CÂU HỎI TIẾP" để chuyển câu & tổ tiếp theo.
+            ▶ Các câu hỏi sẽ lần lượt dành cho các tổ theo thứ tự vòng tròn.<br>
+            💡 Sau khi tổ trả lời, quản trò nhấn "Hiện đáp án gợi ý" để tham khảo, sau đó thưởng điểm phù hợp.
         </div>
     </div>
-    <footer>🎭 Quản trò toàn quyền: chấm điểm dựa trên đáp án gợi ý, thêm điểm thưởng sáng tạo. Hãy tận hưởng không khí thi đua!</footer>
+    <footer>🎭 Quản trò toàn quyền quyết định điểm dựa trên đáp án gợi ý và tính sáng tạo. Hãy tận hưởng không khí thi đua!</footer>
 </div>
 
 <script>
@@ -337,7 +327,7 @@
             text: `📜 <strong>Câu 1 (trang 51 sgk Ngữ văn 11 Tập 2):</strong><br> Câu thơ nào dưới đây cho thấy tác giả đã thể hiện sự sáng tạo bằng cách phá vỡ những quy tắc ngôn ngữ thông thường? Dựa vào đâu bạn kết luận như vậy?<br><br>
             a. "Xanh om cổ thụ tròn xoe tán, Trắng xóa tràng giang phẳng lặng tờ." (Hồ Xuân Hương, Cảnh thu)<br>
             b. "Trong vườn đêm ấy nhiều trăng quá, Ánh sáng tuôn đầy các lối đi." (Xuân Diệu, Trăng)`,
-            answer: `✅ Đáp án mẫu: Cả hai câu thơ đều phá vỡ quy tắc ngôn ngữ thông thường.<br>
+            answer: `✅ Đáp án gợi ý: Cả hai câu thơ đều phá vỡ quy tắc ngôn ngữ thông thường.<br>
             - Câu a: đảo trật tự cú pháp (xanh om, trắng xóa đặt đầu câu).<br>
             - Câu b: đảo chủ ngữ xuống cuối, vị ngữ lên đầu.<br>
             Dựa vào hình thức cấu trúc câu thơ để kết luận.`
@@ -378,17 +368,16 @@
     let timerInterval = null;
     let timeLeft = 0;
     let isTimerRunning = false;
-    let gameActive = true;
 
     // DOM elements
     const scoreboardDiv = document.getElementById("scoreboard");
     const questionTextDiv = document.getElementById("questionText");
     const timerDisplaySpan = document.getElementById("timerDisplay");
     const turnInfoSpan = document.getElementById("turnInfo");
-    const answerKeyArea = document.getElementById("answerKeyArea");
+    const answerRevealArea = document.getElementById("answerRevealArea");
     const logArea = document.getElementById("logArea");
 
-    // Helper: cập nhật UI điểm số
+    // Helper: cập nhật bảng điểm và highlight tổ đang thi đấu
     function updateScoreboard() {
         scoreboardDiv.innerHTML = "";
         teams.forEach((team, idx) => {
@@ -412,19 +401,22 @@
         logEntry.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
-    // hiển thị câu hỏi hiện tại, đồng thời hiển thị đáp án gợi ý
+    // Hiển thị câu hỏi hiện tại và ẩn đáp án
     function displayCurrentQuestion() {
         const q = questionsData[currentQuestionIndex];
         if (q) {
             questionTextDiv.innerHTML = q.text;
-            answerKeyArea.innerHTML = `💡 <strong>📖 ĐÁP ÁN GỢI Ý (quản trò tham khảo):</strong><br>${q.answer}`;
+            // Ẩn khu vực đáp án khi chuyển câu mới
+            answerRevealArea.style.display = "none";
+            answerRevealArea.innerHTML = `💡 <strong>ĐÁP ÁN GỢI Ý:</strong><br>${q.answer}`;
         } else {
             questionTextDiv.innerHTML = "🏁 Chúc mừng! Bạn đã hoàn thành hết câu hỏi. Quản trò có thể tự sáng tạo thêm hoặc bấm RESET để chơi lại.";
-            answerKeyArea.innerHTML = "🎉 Hết câu hỏi! Tổ nào chiến thắng? Quản trò có thể tự ra câu hỏi mở rộng.";
+            answerRevealArea.style.display = "none";
+            answerRevealArea.innerHTML = "🎉 Hết câu hỏi! Quản trò có thể tự ra câu hỏi mở rộng.";
         }
     }
 
-    // dừng timer
+    // Dừng timer
     function stopTimer() {
         if (timerInterval) {
             clearInterval(timerInterval);
@@ -447,9 +439,7 @@
                 isTimerRunning = false;
                 timerDisplaySpan.innerText = "0";
                 addLog(`⏰ Hết giờ! Tổ ${teams[currentTeamIndex].name} không trả lời kịp. Mất lượt.`, true);
-                // Tự động chuyển lượt? Nhưng để quản trò quyết định, nhưng gợi ý chuyển câu hỏi tiếp
                 addLog(`👉 Quản trò hãy nhấn "CÂU HỎI TIẾP" để sang tổ kế tiếp.`);
-                // không tự động next, giữ nguyên trạng thái nhưng có thể next thủ công
             } else {
                 timeLeft--;
                 timerDisplaySpan.innerText = timeLeft;
@@ -459,25 +449,23 @@
 
     // Chuyển câu hỏi tiếp theo và luân phiên tổ
     function nextQuestion() {
-        // Dừng timer nếu đang chạy
         stopTimer();
         // Chuyển sang tổ tiếp theo (vòng tròn)
         currentTeamIndex = (currentTeamIndex + 1) % teams.length;
-        // Chuyển câu hỏi tiếp theo (vòng tròn theo thứ tự đề, nếu hết thì quay lại câu 1 để chơi tiếp)
+        // Chuyển câu hỏi tiếp theo (vòng tròn theo thứ tự đề)
         currentQuestionIndex = (currentQuestionIndex + 1) % questionsData.length;
 
         displayCurrentQuestion();
         updateScoreboard();
         turnInfoSpan.innerHTML = `🎤 LƯỢT: ${teams[currentTeamIndex].name} trả lời câu số ${currentQuestionIndex+1}`;
         addLog(`🔄 Chuyển lượt: ${teams[currentTeamIndex].name} trả lời câu hỏi ${currentQuestionIndex+1}. Quản trò ấn "BẮT ĐẦU GIỜ" để tính thời gian.`);
-        // reset timer hiển thị
         timerDisplaySpan.innerText = "00";
         isTimerRunning = false;
         if(timerInterval) clearInterval(timerInterval);
         timerInterval = null;
     }
 
-    // Thưởng điểm cho tổ hiện tại (hoặc có thể chọn tổ, nhưng mặc định thưởng tổ đang thi đấu)
+    // Thưởng điểm cho tổ hiện tại
     function awardPointsToCurrent(points = 10) {
         const pts = parseInt(points);
         if (isNaN(pts)) return;
@@ -486,50 +474,25 @@
         addLog(`✨ ${teams[currentTeamIndex].name} được cộng ${pts} điểm! Tổng: ${teams[currentTeamIndex].score}`);
     }
 
-    // phạt tổ hiện tại (hoặc chọn tổ, mặc định phạt tổ đang thi đấu để tăng kịch tính)
+    // Phạt tổ hiện tại
     function penaltyCurrent(penaltyPoints = 10) {
         teams[currentTeamIndex].score = Math.max(0, teams[currentTeamIndex].score - penaltyPoints);
         updateScoreboard();
         addLog(`💥 ${teams[currentTeamIndex].name} bị trừ ${penaltyPoints} điểm! Còn ${teams[currentTeamIndex].score} điểm`, true);
     }
 
-    // Sự kiện ngẫu nhiên thú vị
-    function randomEvent() {
-        const events = [
-            { text: "🎁 Mưa lộc: Tất cả tổ được +5 điểm!", action: () => { teams.forEach(t => t.score += 5); updateScoreboard(); } },
-            { text: "⚡ Cướp điểm: Tổ đang dẫn điểm bị trừ 10 điểm và chia đều cho 2 tổ còn lại!", action: () => {
-                let maxTeam = [...teams].sort((a,b)=>b.score-a.score)[0];
-                if (maxTeam.score > 0) {
-                    let deduct = Math.min(10, maxTeam.score);
-                    maxTeam.score -= deduct;
-                    let otherTeams = teams.filter(t=>t.id !== maxTeam.id);
-                    if(otherTeams.length) {
-                        let share = Math.floor(deduct / otherTeams.length);
-                        otherTeams.forEach(t => t.score += share);
-                    }
-                    updateScoreboard();
-                }
-            } },
-            { text: "🎭 Nhân đôi may mắn: Tổ đang thi đấu được nhân đôi điểm ở câu tiếp theo (nếu trả lời đúng). Quản trò tự cộng thưởng thêm!", action: () => {
-                addLog(`🔥 SỰ KIỆN: ${teams[currentTeamIndex].name} sẽ được x2 điểm ở lần thưởng tiếp theo! Quản trò hãy nhớ nhân đôi khi cộng điểm.`);
-            } },
-            { text: "🍀 Hồi phục: Tổ có điểm thấp nhất được +15 điểm!", action: () => {
-                let minTeam = [...teams].sort((a,b)=>a.score-b.score)[0];
-                minTeam.score += 15;
-                updateScoreboard();
-            } },
-            { text: "🎲 Gió may: Mỗi tổ được bốc thăm +0 đến +12 điểm ngẫu nhiên!", action: () => {
-                teams.forEach(t => { let bonus = Math.floor(Math.random() * 13); t.score += bonus; addLog(`${t.name} nhận thêm ${bonus} điểm từ gió may!`); });
-                updateScoreboard();
-            } },
-            { text: "📖 Cảm hứng văn chương: Tổ đang trả lời được +7 điểm sáng tạo!", action: () => { teams[currentTeamIndex].score += 7; updateScoreboard(); } }
-        ];
-        const randomEv = events[Math.floor(Math.random() * events.length)];
-        randomEv.action();
-        addLog(`🎲 SỰ KIỆN: ${randomEv.text}`);
+    // Hiện đáp án gợi ý (bật vùng hiển thị)
+    function revealAnswer() {
+        if (answerRevealArea.style.display === "none" || answerRevealArea.style.display === "") {
+            answerRevealArea.style.display = "block";
+            addLog(`🔍 Quản trò đã xem đáp án gợi ý cho câu hỏi ${currentQuestionIndex+1}.`);
+        } else {
+            // Nếu đã hiện rồi thì không làm gì, nhưng có thể ẩn đi nếu muốn? Tốt nhất giữ nguyên.
+            addLog(`ℹ️ Đáp án đã hiển thị.`);
+        }
     }
 
-    // reset toàn bộ game
+    // Reset toàn bộ game
     function resetGame() {
         stopTimer();
         teams = [
@@ -545,18 +508,18 @@
         timerDisplaySpan.innerText = "00";
         isTimerRunning = false;
         if (timerInterval) clearInterval(timerInterval);
+        answerRevealArea.style.display = "none";
         addLog("🔄 RESET GAME: Điểm số về 0, bắt đầu lại từ câu 1, lượt TỔ 1.");
     }
 
     // Xử lý bắt đầu giờ (quản trò ấn khi tổ đã sẵn sàng)
     function handleStartTimer() {
-        if (!gameActive) return;
         if (timerInterval) stopTimer();
-        startTimer(30);  // 30 giây cho mỗi câu hỏi, tăng kịch tính
+        startTimer(30);
         addLog(`⏳ Bắt đầu tính giờ (30s) cho ${teams[currentTeamIndex].name} trả lời câu hỏi ${currentQuestionIndex+1}`);
     }
 
-    // Có thể thưởng điểm tùy chỉnh cho tổ hiện tại
+    // Thưởng điểm tùy chỉnh
     function customAward() {
         let pointsInput = document.getElementById("pointInput");
         let val = parseInt(pointsInput.value);
@@ -572,11 +535,7 @@
         customAward();
     });
     document.getElementById("penaltyBtn").addEventListener("click", () => {
-        let penalty = 10;
-        penaltyCurrent(penalty);
-    });
-    document.getElementById("randomEventBtn").addEventListener("click", () => {
-        randomEvent();
+        penaltyCurrent(10);
     });
     document.getElementById("resetGameBtn").addEventListener("click", () => {
         resetGame();
@@ -584,13 +543,16 @@
     document.getElementById("startTimerBtn").addEventListener("click", () => {
         handleStartTimer();
     });
+    document.getElementById("revealAnswerBtn").addEventListener("click", () => {
+        revealAnswer();
+    });
 
     // Khởi tạo lần đầu
     function initGame() {
         resetGame(); // set mọi thứ về 0, câu 1, tổ 1
         addLog("🎬 Quản trò có thể nhấn 'CÂU HỎI TIẾP' để duyệt vòng câu hỏi & luân phiên tổ. Mỗi tổ sẽ được hỏi lần lượt.");
-        addLog("⭐ Hãy sử dụng nút thưởng điểm sau khi nghe câu trả lời của tổ, đối chiếu với đáp án gợi ý và sáng tạo chấm điểm.");
-        addLog("🎲 'SỰ KIỆN MAY MẮN' tạo bất ngờ, tăng tính giải trí.");
+        addLog("⭐ Hãy sử dụng nút thưởng điểm sau khi nghe câu trả lời của tổ, đối chiếu với đáp án gợi ý (chỉ hiện khi cần) và chấm điểm.");
+        addLog("🔍 Nhấn 'HIỆN ĐÁP ÁN GỢI Ý' để tham khảo sau khi tổ đã trả lời.");
     }
 
     initGame();
